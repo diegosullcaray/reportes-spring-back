@@ -1,0 +1,32 @@
+spring:
+  mail:
+    host: localhost
+    port: 1025          # Mailpit / MailHog local
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.starttls.enable: false
+
+reportes:
+  correo-remitente: dev@localhost
+  correo-soporte: [ dev@localhost ]
+  definiciones:
+    validacion-cubo:
+      destinatarios: [ dev@localhost ]
+    cartera-heredada:
+      destinatarios: [ dev@localhost ]
+    desembolso-canal:
+      destinatarios: [ dev@localhost ]
+    fondeo-estable:
+      destinatarios: [ dev@localhost ]
+    saldo-medio-vigente:
+      destinatarios: [ dev@localhost ]
+    saca-tu-garra:
+      destinatarios: [ dev@localhost ]
+    datos-cierre:
+      destinatarios: [ dev@localhost ]
+    reporte-seguros:
+      destinatarios: [ dev@localhost ]
+    saldo-puntual-medio:
+      destinatarios: [ dev@localhost ]
+    cartera-vigente-agro:
+      destinatarios: [ dev@localhost ]

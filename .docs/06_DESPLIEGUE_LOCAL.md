@@ -109,8 +109,21 @@ aplican los destinatarios por defecto de `application.yml`:
 
 ### 2.6 Perfil `local` — credenciales personales sin exportar nada
 
-Crear `src/main/resources/application-local.yml` (ya está en `.gitignore`,
-**nunca se commitea**):
+> ⚠️ **`application.yml` SÍ se versiona en git.** Solo debe contener
+> `${VAR:default}` con defaults **no sensibles** (host genérico, `sa`,
+> destinatarios de ejemplo). Nunca pegues una contraseña, un server real o un
+> webhook real como default ahí — quedaría en el historial de git para
+> siempre, aunque lo borres en un commit posterior (revertir el valor no lo
+> quita de los commits anteriores). Tus credenciales reales van **solo** en
+> `application-local.yml`, que sí está en `.gitignore`.
+
+```bash
+cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
+# editar application-local.yml con tus credenciales reales (este archivo NUNCA se commitea)
+```
+
+`application-local.yml.example` (sí versionado, sin secretos) trae la
+plantilla:
 
 ```yaml
 # application-local.yml — configuración personal de desarrollo

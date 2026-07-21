@@ -281,7 +281,7 @@ reportes:
   zona-horaria: ${TZ_SCHEDULES:America/Lima}
   directorio-temporal: ${EXCEL_OUTPUT_PATH:./xlsx_output}
   correo-remitente: ${EMAIL_USER:usuario@confianza.pe}
-  correo-soporte: ${MAIL_SOPORTE:michael.palacios@confianza.pe}   # fallos (RN-03)
+  correo-soporte: ${MAIL_SOPORTE:diego.sullcaray@confianza.pe}   # fallos (RN-03)
   firma-nombre: ${EMAIL_FIRMA_NOMBRE:Equipo de Reportes}
   firma-cargo: ${EMAIL_FIRMA_CARGO:}
   google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:}   # notifica la validación diaria (opcional)
@@ -299,14 +299,14 @@ reportes:
     validacion-cubo:
       cron: "0 0 7 * * *"             # ← copiar EXACTO del cron de Node.js (formato Spring: 6 campos)
       asunto: "Validación Cubo Diaria - %s"
-      destinatarios: ${VALIDACION_CUBO_PARA:michael.palacios@confianza.pe}
+      destinatarios: ${VALIDACION_CUBO_PARA:diego.sullcaray@confianza.pe}
       cc: ${VALIDACION_CUBO_CC:}
       corte: DIA_ANTERIOR
     cartera-heredada:
       cron: "0 30 6 1 * *"
       asunto: "Cartera Heredada PDM - Stock %s"
-      destinatarios: ${CARTERA_HEREDADA_PARA:abigail.jaimes@confianza.pe,karla.campos@confianza.pe,ricardo.lazo@confianza.pe,alvaro.calderon@confianza.pe}
-      cc: ${CARTERA_HEREDADA_CC:michael.palacios@confianza.pe}
+      destinatarios: ${CARTERA_HEREDADA_PARA:,karla.campos@confianza.pe,}
+      cc: ${CARTERA_HEREDADA_CC:diego.sullcaray@confianza.pe}
       corte: FIN_MES_ANTERIOR
     # ... desembolso-canal, fondeo-estable, saldo-medio-vigente, saca-tu-garra,
     #     datos-cierre, reporte-seguros, saldo-puntual-medio, cartera-vigente-agro

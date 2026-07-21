@@ -16,7 +16,7 @@
 | [03](./03_PARALELISMO_SCHEDULING.md) | **Paralelismo y Scheduling** | `ThreadPoolTaskExecutor`, `@Async`, `CompletableFuture.allOf()`, scheduler dinámico (equivalencia con `Promise.all` y cron de Node.js) |
 | [04](./04_EXCEL_CORREO.md) | **Generación Excel y Correo** | Apache POI (SXSSF) para `.xlsx` y `JavaMailSender` con adjuntos (reemplazo de exceljs/nodemailer) |
 | [05](./05_IMPLEMENTATION_PLAN.md) | **Implementation Plan** | Ruta crítica por fases con checkboxes, dependencias y criterios de salida |
-| [06](./06_DESPLIEGUE_LOCAL.md) | **Despliegue Local** ✅ nuevo | Variables de entorno (dónde se cambian), Mailpit, comandos de arranque, Docker Compose y verificación |
+| [06](./06_DESPLIEGUE_LOCAL.md) | **Despliegue Local** ✅ nuevo | Variables de entorno (dónde se cambian), perfiles `dev`/`local`, comandos de arranque con `mvnw`/jar y verificación — solo Spring Boot, sin Docker |
 
 ---
 

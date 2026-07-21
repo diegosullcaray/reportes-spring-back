@@ -32,5 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-# Variables locales (nunca commitear credenciales)
+# Configuración local con credenciales (perfil "local" de Spring — nunca commitear)
 .env
+src/main/resources/application-local.yml

@@ -121,7 +121,7 @@ Cada reporte define sus columnas junto a sus queries (mismo subpaquete), por eje
 ## 2. Servicio de Correo — `JavaMailSender`
 
 Reemplazo directo de `nodemailer`. La configuración SMTP vive en `application.yml`
-(§4 del [doc 02](./02_TRD_ARQUITECTURA.md)) y varía por perfil (`dev` usa MailHog/Mailpit).
+(§4 del [doc 02](./02_TRD_ARQUITECTURA.md)) y varía por perfil (`dev` apunta a un SMTP local de pruebas).
 
 ### Reglas de correo
 
@@ -176,14 +176,14 @@ public class EmailService {
 spring:
   mail:
     host: localhost
-    port: 1025          # Mailpit / MailHog
+    port: 1025          # SMTP local de pruebas
 reportes:
   definiciones:
     cartera-heredada:
       destinatarios: [dev@localhost]
 ```
 
-Con Mailpit en `docker-compose` se inspeccionan visualmente los correos y adjuntos sin
+Con un SMTP local de pruebas se inspeccionan los correos y adjuntos sin
 tocar el relay corporativo.
 
 ---

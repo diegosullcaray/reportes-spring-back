@@ -2,18 +2,19 @@ spring:
   application:
     name: task-reportes-back
   datasource:
-    # Si no existe la variable de entorno DB_URL, usará la ruta local por defecto
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:123456}
+    # Motor real: SQL Server (bases dma / dwh / storage referenciadas en las queries)
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=storage;encrypt=true;trustServerCertificate=true}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:changeit}
     hikari:
+      # Regla de coherencia (doc 03 §4): maximum-pool-size >= executor.max-size
       maximum-pool-size: 10
       connection-timeout: 30000
   mail:
     host: ${SMTP_HOST:localhost}
     port: ${SMTP_PORT:1025}
-    username: ${SMTP_USER:admin}
-    password: ${SMTP_PASSWORD:admin}
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -23,24 +24,67 @@ spring:
 reportes:
   zona-horaria: America/Lima
   directorio-temporal: ${TMP_REPORTES:/tmp/reportes}
+  correo-remitente: ${MAIL_FROM:reportes@confianza.pe}
+  correo-soporte: [ "${MAIL_SOPORTE:soporte-ti@confianza.pe}" ]
+  adjunto-max-mb: 20
   executor:
     core-size: 8
     max-size: 8
     queue-capacity: 50
     thread-name-prefix: report-exec-
+  # Crons en formato Spring de 6 campos (SC-01). Los horarios son provisionales:
+  # durante la convivencia deben copiarse EXACTOS de los cron de Node.js (RN-02).
   definiciones:
-    cartera-heredada:
-      cron: "0 30 6 * * *"
-      asunto: "Reporte Cartera Heredada - %s"
-      destinatarios: [riesgos@empresa.pe, finanzas@empresa.pe]
-    desembolso-canal:
-      cron: "0 0 7 * * MON-FRI"
-      asunto: "Reporte Desembolso Canal - %s"
-      destinatarios: [canales@empresa.pe]
-    fondeo-estable:
-      cron: "0 0 8 1 * *"
-      asunto: "Reporte Fondeo Estable - %s"
-      destinatarios: [tesoreria@empresa.pe, finanzas@empresa.pe]
+    validacion-cubo:                       # VALIDACIÓN DIARIA del cubo comercial
+      cron: "0 0 7 * * *"
+      asunto: "Validación Cubo Diaria - %s"
+      destinatarios: [ "${MAIL_VALIDACIONES:mis-datos@confianza.pe}" ]
+      corte: DIA_ANTERIOR
+    cartera-heredada:                      # MENSUAL — Cartera Heredada PDM
+      cron: "0 30 6 1 * *"
+      asunto: "Cartera Heredada PDM - Stock %s"
+      destinatarios: [ "${MAIL_RIESGOS:riesgos@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    desembolso-canal:                      # MENSUAL — Desembolso Canal
+      cron: "0 40 6 1 * *"
+      asunto: "Desembolso Canal - %s"
+      destinatarios: [ "${MAIL_CANALES:canales@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    fondeo-estable:                        # MENSUAL — Fondeo Estable
+      cron: "0 50 6 1 * *"
+      asunto: "Fondeo Estable - %s"
+      destinatarios: [ "${MAIL_TESORERIA:tesoreria@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    saldo-medio-vigente:                   # MENSUAL — Saldo Medio Vigente (Diana)
+      cron: "0 0 7 1 * *"
+      asunto: "Saldo Medio Vigente - %s"
+      destinatarios: [ "${MAIL_FINANZAS:finanzas@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    saca-tu-garra:                         # MENSUAL — Base Saca tu Garra (Giancarlo)
+      cron: "0 10 7 1 * *"
+      asunto: "Saca tu Garra - %s"
+      destinatarios: [ "${MAIL_COMERCIAL:comercial@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    datos-cierre:                          # MENSUAL — Ratio CE, clientes nuevos y migrantes
+      cron: "0 20 7 1 * *"
+      asunto: "Datos Cierre - %s"
+      destinatarios: [ "${MAIL_COMERCIAL:comercial@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    reporte-seguros:                       # MENSUAL — Penetración de seguros (Giovani)
+      cron: "0 30 7 1 * *"
+      asunto: "Reporte Seguros - %s"
+      destinatarios: [ "${MAIL_SEGUROS:seguros@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    saldo-puntual-medio:                   # MENSUAL — Saldo puntual / saldo medio (Giovani)
+      cron: "0 40 7 1 * *"
+      asunto: "Saldo Puntual - Saldo Medio - %s"
+      destinatarios: [ "${MAIL_PASIVOS:pasivos@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    cartera-vigente-agro:                  # MENSUAL — Cartera vigente producto agro (Giovani)
+      cron: "0 50 7 1 * *"
+      asunto: "Cartera Vigente Agro - %s"
+      destinatarios: [ "${MAIL_COMERCIAL:comercial@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
 
 management:
   endpoints:

@@ -48,9 +48,10 @@
       <artifactId>poi-ooxml</artifactId>
       <version>${poi.version}</version>
     </dependency>
+    <!-- Motor real de las queries migradas: SQL Server (dma / dwh / storage) -->
     <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
       <scope>runtime</scope>
     </dependency>
     <dependency>

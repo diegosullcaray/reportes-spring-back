@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: task-reportes-back
+  datasource:
+    # Si no existe la variable de entorno DB_URL, usará la ruta local por defecto
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/postgres}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:123456}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USER:admin}
+    password: ${SMTP_PASSWORD:admin}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 30000
+
+reportes:
+  zona-horaria: America/Lima
+  directorio-temporal: ${TMP_REPORTES:/tmp/reportes}
+  executor:
+    core-size: 8
+    max-size: 8
+    queue-capacity: 50
+    thread-name-prefix: report-exec-
+  definiciones:
+    cartera-heredada:
+      cron: "0 30 6 * * *"
+      asunto: "Reporte Cartera Heredada - %s"
+      destinatarios: [riesgos@empresa.pe, finanzas@empresa.pe]
+    desembolso-canal:
+      cron: "0 0 7 * * MON-FRI"
+      asunto: "Reporte Desembolso Canal - %s"
+      destinatarios: [canales@empresa.pe]
+    fondeo-estable:
+      cron: "0 0 8 1 * *"
+      asunto: "Reporte Fondeo Estable - %s"
+      destinatarios: [tesoreria@empresa.pe, finanzas@empresa.pe]
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, scheduledtasks

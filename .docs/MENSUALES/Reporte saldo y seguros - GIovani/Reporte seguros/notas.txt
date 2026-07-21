@@ -1,0 +1,1 @@
+la columna  sectorista , grupo , corredor , territorio , los campos que esten en NULL , (cambiar SIN ASIGNAR)

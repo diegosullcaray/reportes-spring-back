@@ -100,7 +100,8 @@ aplican los destinatarios por defecto de `application.yml`:
 |---|---|---|
 | `TZ_SCHEDULES` | `America/Lima` | Zona horaria de los cron |
 | `EXCEL_OUTPUT_PATH` | `./xlsx_output` | Carpeta de los `.xlsx` (se eliminan tras el envío exitoso, RN-08) |
-| `GOOGLE_CHAT_WEBHOOK_URL` | *(vacío)* | Webhook entrante de un espacio de Google Chat: espacio → "Apps e integraciones" → "Webhooks" → crear → copiar URL. La validación diaria del cubo notifica ahí su resultado; si se omite, solo loguea |
+| `GOOGLE_CHAT_WEBHOOK_URL` | *(vacío)* | Webhook entrante de un espacio de Google Chat: espacio → "Apps e integraciones" → "Webhooks" → crear → copiar URL. El control de cargas y la validación diaria del cubo notifican ahí su resultado; si se omite, solo loguean |
+| `CONTROL_CARGAS_CRON` | `0 */5 * * * *` (cada 5 min) | Frecuencia de la validación de control de cargas (cron Spring de 6 campos; el `*/5 * * * *` de Node.js equivale a `0 */5 * * * *`) |
 | `SPRING_PROFILES_ACTIVE` | *(ninguno)* | `dev` → todos los correos a `dev@localhost`; `local` → tu configuración personal (§2.6) |
 
 ### 2.5 Dónde editar cada cosa
@@ -123,13 +124,8 @@ aplican los destinatarios por defecto de `application.yml`:
 > quita de los commits anteriores). Tus credenciales reales van **solo** en
 > `application-local.yml`, que sí está en `.gitignore`.
 
-```bash
-cp src/main/resources/application-local.yml.example src/main/resources/application-local.yml
-# editar application-local.yml con tus credenciales reales (este archivo NUNCA se commitea)
-```
-
-`application-local.yml.example` (sí versionado, sin secretos) trae la
-plantilla:
+Crear `src/main/resources/application-local.yml` (este archivo NUNCA se
+commitea — ya está en `.gitignore`) con esta plantilla:
 
 ```yaml
 # application-local.yml — configuración personal de desarrollo
@@ -219,7 +215,19 @@ curl -s -X POST 'http://localhost:8080/api/v1/reportes/fondeo-estable/ejecutar?c
 ```
 
 En el arranque, el log muestra la cadena JDBC armada y el modo de autenticación:
-`DataSource SQL Server: jdbc:sqlserver://... (auth=Windows/NTLM dominio DOMINIO)`.
+`DataSource SQL Server: jdbc:sqlserver://... (auth=Windows/NTLM dominio DOMINIO)`,
+y apenas termina de levantar, `DataSourceStartupCheck` **prueba la conexión real**
+y deja el resultado explícito:
+
+```
+✅ Conexión a BD verificada: SERVIDOR-BD:1433/storage — autenticación Windows/NTLM (DOMINIO\usuario) — 15.00.4360
+   — o, si falla —
+❌ NO se pudo conectar a la base de datos al arrancar: ... Causa: SQLServerException: Login failed...
+```
+
+El fallo **no tumba la aplicación** (los crons quedan programados y los reportes
+reintentan conectar en cada corrida, RN-03), pero ahora el problema se ve de
+inmediato al arrancar en vez de recién al disparar el primer reporte.
 
 **Qué mirar en los logs:** cada corrida lleva su `ejecucionId` y las queries del
 reporte deben verse **casi simultáneas en hilos `report-exec-*` distintos**

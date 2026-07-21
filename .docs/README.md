@@ -50,6 +50,7 @@ procesamiento **estrictamente en paralelo** (no secuencial) mediante un
 
 | Código | Reporte | Frecuencia | Estado |
 |---|---|---|---|
+| `control-cargas` | Validación del estado de cargas (mod_rep.com.RSRPD001) → notifica a Google Chat | Cada 5 min | ✅ Migrado |
 | `validacion-cubo` | Validación diaria del cubo comercial (indicadores + reglas) | Diaria | ✅ Migrado (falta confirmar vista real del cubo) |
 | `cartera-heredada` | Stock PDM heredado (bases `dma`/`dwh`) | Mensual | ✅ Migrado |
 | `desembolso-canal` | Desembolsos BT/CT por jerarquía comercial | Mensual | ✅ Migrado |

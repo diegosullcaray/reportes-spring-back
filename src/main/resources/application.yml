@@ -57,6 +57,11 @@ reportes:
   # resultado de la validación diaria del cubo. Si se omite, solo se loguea.
   google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:}
   adjunto-max-mb: 20
+  # Validación de control de cargas: consulta mod_rep.com.RSRPD001 y notifica
+  # cada corrida a Google Chat. Cron Spring de 6 campos (default: cada 5 min,
+  # como el */5 * * * * de Node.js).
+  control-cargas:
+    cron: ${CONTROL_CARGAS_CRON:0 */5 * * * *}
   executor:
     core-size: 8
     max-size: 8

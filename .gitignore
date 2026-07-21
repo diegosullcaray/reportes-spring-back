@@ -32,6 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 
-# Configuración local con credenciales (perfil "local" de Spring — nunca commitear)
+# Configuración local con credenciales (perfil "local" de Spring — nunca commitear).
+# application.yml SÍ se versiona: solo debe tener defaults seguros (sin secretos).
 .env
-src/main/resources/application.yml
+src/main/resources/application-local.yml

@@ -53,8 +53,11 @@ así la configuración existente se traslada sin renombrar nada.
 | `DB_TRUST_CERTIFICATE` | `true` | `trustServerCertificate` |
 
 La cadena JDBC se **arma sola** desde estas partes (`DbProperties.jdbcUrl()`):
-con `DB_DOMAIN` agrega `authenticationScheme=NTLM;domain=...`; con `DB_INSTANCE`
-usa `instanceName=...` (requiere el servicio SQL Browser activo en el servidor).
+con `DB_DOMAIN` agrega `integratedSecurity=true;authenticationScheme=NTLM;domain=...`
+(las dos banderas van juntas: sin `integratedSecurity=true` el driver de
+Microsoft **ignora** `authenticationScheme=NTLM` y cae en silencio a SQL Server
+Authentication); con `DB_INSTANCE` usa `instanceName=...` (requiere el
+servicio SQL Browser activo en el servidor).
 
 ### 2.2 Correo (Google Workspace)
 
@@ -66,8 +69,11 @@ usa `instanceName=...` (requiere el servicio SQL Browser activo en el servidor).
 | `EMAIL_PORT` | `465` | Si el firewall bloquea el 465, usar `587` (ver abajo) |
 | `EMAIL_SSL` | `true` | SSL implícito (puerto 465) |
 | `EMAIL_STARTTLS` | `false` | Para puerto 587: `EMAIL_SSL=false` y `EMAIL_STARTTLS=true` |
-| `EMAIL_FIRMA_NOMBRE` | `Equipo de Reportes` | Firma de los correos |
-| `EMAIL_FIRMA_CARGO` | *(vacío)* | Cargo en la firma |
+| `EMAIL_FIRMA_NOMBRE` | `Equipo de Reportes` | Nombre en la firma de todos los correos |
+| `EMAIL_FIRMA_CARGO` | *(vacío)* | Cargo en la firma, debajo del nombre |
+| `EMAIL_FIRMA_DIRECCION` | `Las Begonias 441 oficina 338C, San Isidro, Lima` | Dirección en la firma |
+| `EMAIL_FIRMA_WEB` | `www.confianza.pe` | Enlace al pie de la firma |
+| `EMAIL_FIRMA_LOGO_PATH` | `classpath:static/logo-confianza.png` | Logo de la firma (ver doc 04 §2.0); el default ya trae el logo real empaquetado en el jar |
 | `MAIL_SOPORTE` | `michael.palacios@confianza.pe` | Recibe las notificaciones de fallo (RN-03) |
 
 ### 2.3 Destinatarios por reporte (listas separadas por comas)
@@ -178,7 +184,7 @@ SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 ### Opción B — JAR ejecutable (lo más parecido a producción)
 
 ```bash
-./mvnw clean package                 # compila + corre los 20 tests
+./mvnw clean package                 # compila + corre los 23 tests
 java -jar target/task-reportes-back-1.0.0.jar --spring.profiles.active=dev,local
 ```
 
@@ -219,11 +225,53 @@ En el arranque, el log muestra la cadena JDBC armada y el modo de autenticación
 reporte deben verse **casi simultáneas en hilos `report-exec-*` distintos**
 (CA-02); la duración total ≈ la query más lenta (CA-03).
 
+### 4.1 Formato y color de los logs
+
+`logback-spring.xml` da a cada línea el mismo orden de columnas, coloreadas
+por severidad (verde INFO, amarillo WARN, rojo ERROR):
+
+```
+2026-07-21 14:05:55.301  INFO  [report-exec-1  ] [fondeo-estable-88ccc296] p.c.r.scheduler.ReporteScheduler : Reporte fondeo-estable OK: 42 filas en 1834 ms
+```
+
+| Columna | Qué muestra |
+|---|---|
+| hora | tenue, para no competir visualmente con el mensaje |
+| nivel | color por severidad (INFO verde, WARN amarillo, ERROR rojo) |
+| `[hilo]` | confirma el paralelismo real: varios `report-exec-N` corriendo a la vez (CA-02) |
+| `[ejecucionId]` | cian; con este id filtras (`grep`) **todos** los logs de una misma corrida (RN-07) |
+| logger | cian, acortado a 32 caracteres |
+
+El arranque de la app también viene con menos ruido: se bajaron a `WARN` los
+logs internos de Tomcat/Catalina, HikariCP y springdoc que no aportan a
+diagnosticar un reporte (se pueden reactivar agregando
+`logging.level.<paquete>=INFO` en tu `application-local.yml` si hace falta
+depurar la conexión a la BD, por ejemplo).
+
+**Windows (cmd.exe): si los acentos salen mal** (`FALL├ô` en vez de `FALLÓ`),
+no es un bug de la app — es que la consola interpreta los bytes UTF-8 con el
+codepage antiguo (CP437/850). Antes de arrancar el jar:
+
+```bat
+chcp 65001
+java -jar target\task-reportes-back-1.0.0.jar --spring.profiles.active=dev,local
+```
+
+Si además los colores no se ven (solo aparecen códigos como `←[32m` sueltos),
+fuerza el detector de ANSI:
+
+```bat
+java -Dspring.output.ansi.enabled=ALWAYS -jar target\task-reportes-back-1.0.0.jar --spring.profiles.active=dev,local
+```
+
+(PowerShell 7 y Windows Terminal no tienen ninguno de los dos problemas —
+usan UTF-8 y ANSI por defecto.)
+
 ### Errores comunes
 
 | Síntoma | Causa | Solución |
 |---|---|---|
-| `Login failed for user 'usuario'` | `DB_DOMAIN` definido pero credenciales de SQL auth (o viceversa) | Con Windows Authentication definir `DB_DOMAIN` y el usuario **sin** `DOMINIO\`; para SQL auth dejar `DB_DOMAIN` vacío |
+| `Login failed for user 'usuario'` | `DB_DOMAIN` definido pero falta `integratedSecurity=true`, o son credenciales de SQL auth (o viceversa) | Con Windows Authentication basta con definir `DB_DOMAIN` (el código ya agrega `integratedSecurity=true` automáticamente) y el usuario **sin** `DOMINIO\`; para SQL auth dejar `DB_DOMAIN` vacío |
 | `The connection to the named instance ... failed` | `DB_INSTANCE` definido pero SQL Browser apagado o UDP 1434 bloqueado | Conectar por puerto: quitar `DB_INSTANCE` y definir `DB_PORT` |
 | `Username and Password not accepted` (Gmail 535) | `EMAIL_PASSWORD` no es contraseña de aplicación o tiene espacios | Generar contraseña de aplicación y pegar los 16 caracteres juntos |
 | Correo no sale y el log muestra timeout al 465 | Firewall bloquea el 465 | `EMAIL_PORT=587`, `EMAIL_SSL=false`, `EMAIL_STARTTLS=true` |
@@ -231,6 +279,8 @@ reporte deben verse **casi simultáneas en hilos `report-exec-*` distintos**
 | Reporte queda "EN_PROCESO" mucho tiempo | Query lenta o BD inaccesible | Timeout de 15 min por reporte; ver logs por `ejecucionId` |
 | El `.xlsx` no está en `./xlsx_output` tras un envío exitoso | Comportamiento esperado | RN-08: se elimina tras el envío; solo se conserva si el correo falló |
 | No llega la notificación a Google Chat | `GOOGLE_CHAT_WEBHOOK_URL` no configurado | Crear el webhook en el espacio y exportar la variable (opcional; sin él solo se loguea) |
+| Los acentos salen mal en la consola (Windows) | Codepage de `cmd.exe` distinto de UTF-8 | `chcp 65001` antes de arrancar (§4.1) |
+| El correo sale sin logo aunque configuré `EMAIL_FIRMA_LOGO_PATH` | La ruta no existe desde donde corre el proceso, o falta el prefijo `file:`/`classpath:` | Usar `file:C:/ruta/absoluta.png` para un archivo en disco, o revisar el `WARN` en el log: `reportes.firma-logo-path='...' no existe` |
 
 ---
 

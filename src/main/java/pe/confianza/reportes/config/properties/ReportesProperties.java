@@ -31,6 +31,9 @@ public record ReportesProperties(
         @NotEmpty List<String> correoSoporte,
         @DefaultValue("Equipo de Reportes") String firmaNombre,
         @DefaultValue("") String firmaCargo,
+        @DefaultValue("Las Begonias 441 oficina 338C, San Isidro, Lima") String firmaDireccion,
+        @DefaultValue("www.confianza.pe") String firmaWeb,
+        @DefaultValue("classpath:static/logo-confianza.png") String firmaLogoPath,
         @DefaultValue("") String googleChatWebhookUrl,
         @Min(1) @DefaultValue("20") int adjuntoMaxMb,
         @NotNull @Valid Map<String, Definicion> definiciones

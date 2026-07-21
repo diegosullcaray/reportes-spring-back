@@ -50,7 +50,7 @@ class ReporteControllerTest {
         executor.setCorePoolSize(1);
         executor.initialize();
         var props = new ReportesProperties("America/Lima", Path.of("/tmp"), "a@b.pe", List.of("s@b.pe"),
-                "Equipo de Reportes", "", "", 20,
+                "Equipo de Reportes", "", "", "", "", "", 20,
                 Map.of("cartera-heredada", new ReportesProperties.Definicion(
                         "0 30 6 1 * *", "Cartera Heredada PDM - Stock %s", List.of("r@b.pe"),
                         List.of("cc@b.pe"), ReportesProperties.EstrategiaCorte.FIN_MES_ANTERIOR)));

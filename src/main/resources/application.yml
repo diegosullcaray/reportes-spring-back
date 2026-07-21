@@ -41,8 +41,18 @@ reportes:
   directorio-temporal: ${EXCEL_OUTPUT_PATH:./xlsx_output}
   correo-remitente: ${EMAIL_USER:usuario@confianza.pe}
   correo-soporte: ${MAIL_SOPORTE:michael.palacios@confianza.pe}
+  # Firma corporativa al pie de TODO correo (reportes y avisos de fallo) —
+  # ver .docs/04_EXCEL_CORREO.md §2.0 y .docs/FIRMA/images/firma/email-template.js
+  # (plantilla original de Node.js que esta firma replica).
   firma-nombre: ${EMAIL_FIRMA_NOMBRE:Equipo de Reportes}
   firma-cargo: ${EMAIL_FIRMA_CARGO:}
+  firma-direccion: ${EMAIL_FIRMA_DIRECCION:Las Begonias 441 oficina 338C, San Isidro, Lima}
+  firma-web: ${EMAIL_FIRMA_WEB:www.confianza.pe}
+  # Logo embebido inline (cid, no depende de que el cliente cargue imágenes
+  # externas). Default = logo corporativo empaquetado en el jar
+  # (src/main/resources/static/logo-confianza.png); también admite file:<ruta>
+  # o una ruta de archivo plana para usar un logo distinto sin recompilar.
+  firma-logo-path: ${EMAIL_FIRMA_LOGO_PATH:classpath:static/logo-confianza.png}
   # Webhook entrante de un espacio de Google Chat (opcional): notifica el
   # resultado de la validación diaria del cubo. Si se omite, solo se loguea.
   google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:}

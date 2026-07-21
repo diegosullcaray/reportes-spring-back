@@ -1,8 +1,11 @@
 package pe.confianza.reportes.mail;
 
+import jakarta.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -21,10 +24,17 @@ import java.util.zip.ZipOutputStream;
  * Envío de correos genérico (AR-04): no conoce qué reporte lo invoca.
  * Reintentos con backoff 2s/4s/8s (MA-04); si el adjunto supera el límite del
  * relay se comprime a .zip (MA-06); el archivo se elimina solo tras envío
- * exitoso (RN-08) y se conserva ante fallo para reenvío manual.
+ * exitoso (RN-08) y se conserva ante fallo para reenvío manual. Si hay un logo
+ * configurado ({@code reportes.firma-logo-path}), se embebe como imagen inline
+ * (cid:{@value #LOGO_CONTENT_ID}) para que aparezca en la firma sin depender
+ * de que el cliente de correo cargue imágenes externas. El default apunta al
+ * logo corporativo empaquetado en el jar ({@code classpath:static/logo-confianza.png}).
  */
 @Service
 public class EmailService {
+
+    /** Content-ID de la imagen de firma embebida; debe coincidir con el "cid:" del HTML del correo. */
+    public static final String LOGO_CONTENT_ID = "firma-logo";
 
     private static final Logger log = LoggerFactory.getLogger(EmailService.class);
     private static final int MAX_INTENTOS = 3;
@@ -51,6 +61,7 @@ public class EmailService {
             }
             helper.setSubject(asunto);
             helper.setText(cuerpoHtml, true);
+            embebirLogoSiConfigurado(helper);
             helper.addAttachment(aEnviar.getFileName().toString(), new FileSystemResource(aEnviar));
             mailSender.send(mensaje);
         }, asunto);
@@ -66,13 +77,42 @@ public class EmailService {
     public void enviarTexto(List<String> destinatarios, String asunto, String cuerpoHtml) {
         enviarConReintentos(() -> {
             var mensaje = mailSender.createMimeMessage();
-            var helper = new MimeMessageHelper(mensaje, false, StandardCharsets.UTF_8.name());
+            var helper = new MimeMessageHelper(mensaje, true, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.correoRemitente());
             helper.setTo(destinatarios.toArray(String[]::new));
             helper.setSubject(asunto);
             helper.setText(cuerpoHtml, true);
+            embebirLogoSiConfigurado(helper);
             mailSender.send(mensaje);
         }, asunto);
+    }
+
+    private void embebirLogoSiConfigurado(MimeMessageHelper helper) throws MessagingException {
+        String rutaLogo = properties.firmaLogoPath();
+        if (rutaLogo == null || rutaLogo.isBlank()) {
+            return;
+        }
+        Resource logo = resolverLogo(rutaLogo);
+        if (!logo.exists()) {
+            log.warn("reportes.firma-logo-path='{}' no existe; el correo se envía sin logo", rutaLogo);
+            return;
+        }
+        helper.addInline(LOGO_CONTENT_ID, logo);
+    }
+
+    /**
+     * Resuelve {@code reportes.firma-logo-path} con los prefijos habituales de
+     * Spring: {@code classpath:} (empaquetado en el jar, funciona igual en dev
+     * y producción) o {@code file:}/ruta plana (archivo en disco del servidor).
+     */
+    private static Resource resolverLogo(String ruta) {
+        if (ruta.startsWith("classpath:")) {
+            return new ClassPathResource(ruta.substring("classpath:".length()));
+        }
+        if (ruta.startsWith("file:")) {
+            return new FileSystemResource(ruta.substring("file:".length()));
+        }
+        return new FileSystemResource(ruta);
     }
 
     private void enviarConReintentos(Envio envio, String asunto) {

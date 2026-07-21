@@ -137,10 +137,10 @@ Reemplazo directo de `nodemailer`. La configuración SMTP vive en `application.y
 
 ### 2.0 Firma corporativa e imagen del correo
 
-Réplica exacta de la firma del proyecto Node.js original — ver
-[`.docs/FIRMA/images/firma/email-template.js`](./FIRMA/images/firma/email-template.js)
-(plantilla de referencia) y [`.docs/FIRMA/images/image.png`](./FIRMA/images/image.png)
-(logo original). **Todo** correo saliente la lleva al pie: el del reporte
+Réplica exacta de la firma del proyecto Node.js original (plantilla
+`email-template.js`; el logo real quedó empaquetado en
+`src/main/resources/static/logo-confianza.png`). **Todo** correo saliente la
+lleva al pie: el del reporte
 (`ReporteSupport`) y el de aviso de fallo a soporte (`ReporteScheduler`),
 armada una sola vez por `FirmaHtmlBuilder` (`mail/FirmaHtmlBuilder.java`) para
 no duplicar el HTML en dos lugares.

@@ -143,6 +143,8 @@ task-reportes-back/
 │   ├── config/                             ← CONFIGURACIÓN
 │   │   ├── AsyncConfig.java                  @EnableAsync + ThreadPoolTaskExecutor "reportTaskExecutor" (doc 03 §2)
 │   │   ├── DataSourceConfig.java             Hikari perezoso con la URL armada por DbProperties (NTLM/instancia)
+│   │   ├── DataSourceStartupCheck.java       Prueba la conexión al terminar el arranque y loguea ✅/❌ explícito
+│   │   │                                     (sin tumbar la app: los reportes reintentan en cada corrida)
 │   │   ├── MdcTaskDecorator.java             Propaga el MDC (ejecucionId) a los hilos del pool (RN-07)
 │   │   ├── SchedulingConfig.java             @EnableScheduling + registro DINÁMICO: un CronTrigger por bean
 │   │   │                                     ReporteService leyendo reportes.definiciones.* (AR-07/SC-02)
@@ -155,9 +157,11 @@ task-reportes-back/
 │   │       └── ExecutorProperties.java       @ConfigurationProperties "reportes.executor.*"
 │   │
 │   ├── scheduler/                          ← ORQUESTADOR
-│   │   └── ReporteScheduler.java             Sin lógica de negocio (AR-01): resuelve corte según la estrategia
-│   │                                         (DIA_ANTERIOR | FIN_MES_ANTERIOR), correlación MDC, captura fallos
-│   │                                         y notifica a soporte (RN-03). Usado por cron y por la API manual.
+│   │   ├── ReporteScheduler.java             Sin lógica de negocio (AR-01): resuelve corte según la estrategia
+│   │   │                                     (DIA_ANTERIOR | FIN_MES_ANTERIOR), correlación MDC, captura fallos
+│   │   │                                     y notifica a soporte (RN-03). Usado por cron y por la API manual.
+│   │   └── ControlCargasScheduler.java       Validación de cargas cada 5 min (CONTROL_CARGAS_CRON) con guardia
+│   │                                         anti-solapamiento; cada corrida notifica a Google Chat
 │   │
 │   ├── service/                            ← SERVICIOS DE REPORTES (lógica paralela)
 │   │   ├── ReporteService.java               Interfaz común: String codigo(); ReporteResultado generar(LocalDate corte)
@@ -172,7 +176,9 @@ task-reportes-back/
 │   │   ├── seguros/                          Penetración de seguros, 47 columnas (Giovani)
 │   │   ├── saldopuntual/                     Saldo puntual + saldo medio (Giovani)
 │   │   ├── carteravigenteagro/               Saldo vigente actual/anterior + clientes (Giovani)
-│   │   └── validacioncubo/                   VALIDACIÓN DIARIA: indicadores del cubo + reglas OK/ALERTA/ADVERTENCIA
+│   │   ├── validacioncubo/                   VALIDACIÓN DIARIA: indicadores del cubo + reglas OK/ALERTA/ADVERTENCIA
+│   │   └── controlcargas/                    VALIDACIÓN DE CARGAS: mod_rep.com.RSRPD001 cada 5 min → Google Chat
+│   │                                         (ProcesoCarga, ControlCargasService, ControlCargasResultado)
 │   │
 │   ├── repository/                         ← ACCESO A DATOS (un repositorio por reporte)
 │   │   ├── CarteraHeredadaRepository.java    Métodos @Async("reportTaskExecutor") → CompletableFuture<List<Fila>>
@@ -194,6 +200,7 @@ task-reportes-back/
 │   │
 │   ├── web/                                ← API MANUAL (soporte)
 │   │   ├── ReporteController.java            GET /api/v1/reportes · POST /api/v1/reportes/{codigo}/ejecutar → 202
+│   │   ├── ValidacionesController.java       GET /api/v1/validaciones/control-cargas (estado en vivo)
 │   │   ├── GlobalExceptionHandler.java       404 reporte inexistente · 400 corte futuro/inválido · 500 genérico
 │   │   └── ApiError.java                     { status, message, timestamp }
 │   │

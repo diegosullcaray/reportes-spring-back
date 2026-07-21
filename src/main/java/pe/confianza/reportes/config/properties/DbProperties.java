@@ -29,7 +29,8 @@ public record DbProperties(
         @DefaultValue("1433") @Min(1) int port,
         @DefaultValue("false") boolean encryption,
         @DefaultValue("true") boolean trustCertificate,
-        @DefaultValue("10") @Min(1) int poolSize
+        @DefaultValue("10") @Min(1) int poolSize,
+        @DefaultValue("true") boolean startupCheck
 ) {
 
     public String jdbcUrl() {

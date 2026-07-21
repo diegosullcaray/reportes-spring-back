@@ -9,7 +9,7 @@ class DbPropertiesTest {
     @Test
     void sqlServerAuthConPuertoDirecto() {
         var db = new DbProperties("srv-bd", "storage", "", "usuario", "secreto",
-                "", 1433, false, true, 10);
+                "", 1433, false, true, 10, true);
 
         assertThat(db.jdbcUrl()).isEqualTo(
                 "jdbc:sqlserver://srv-bd:1433;databaseName=storage;encrypt=false;trustServerCertificate=true");
@@ -18,7 +18,7 @@ class DbPropertiesTest {
     @Test
     void windowsAuthNtlmConInstanciaNombrada() {
         var db = new DbProperties("SERVIDOR", "storage", "DOMINIO", "usuario", "secreto",
-                "SQLEXPRESS", 1433, false, true, 10);
+                "SQLEXPRESS", 1433, false, true, 10, true);
 
         assertThat(db.jdbcUrl()).isEqualTo(
                 "jdbc:sqlserver://SERVIDOR;instanceName=SQLEXPRESS;databaseName=storage"
@@ -28,7 +28,7 @@ class DbPropertiesTest {
 
     @Test
     void encriptacionConfigurable() {
-        var db = new DbProperties("srv", "dwh", "", "u", "p", "", 1450, true, false, 10);
+        var db = new DbProperties("srv", "dwh", "", "u", "p", "", 1450, true, false, 10, true);
 
         assertThat(db.jdbcUrl()).contains(":1450;")
                 .contains("encrypt=true")

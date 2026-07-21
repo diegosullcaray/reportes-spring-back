@@ -1,9 +1,9 @@
 # 02 — TRD Arquitectura y Stack (Spring Boot)
 > **Proyecto:** Task Reportes — Orquestador de Reportes Financieros
-> **Documentación Activa:** [README](./README.md) | [01_PRD_MIGRACION](./01_PRD_MIGRACION.md) | [02_TRD_ARQUITECTURA](./02_TRD_ARQUITECTURA.md) | [03_PARALELISMO_SCHEDULING](./03_PARALELISMO_SCHEDULING.md) | [04_EXCEL_CORREO](./04_EXCEL_CORREO.md) | [05_IMPLEMENTATION_PLAN](./05_IMPLEMENTATION_PLAN.md)
-> **Versión:** 1.0.0
-> **Fecha:** 2026-07-20
-> **Estado:** 🟢 Especificación lista para construir
+> **Documentación Activa:** [README](./README.md) | [01_PRD_MIGRACION](./01_PRD_MIGRACION.md) | [02_TRD_ARQUITECTURA](./02_TRD_ARQUITECTURA.md) | [03_PARALELISMO_SCHEDULING](./03_PARALELISMO_SCHEDULING.md) | [04_EXCEL_CORREO](./04_EXCEL_CORREO.md) | [05_IMPLEMENTATION_PLAN](./05_IMPLEMENTATION_PLAN.md) | [06_DESPLIEGUE_LOCAL](./06_DESPLIEGUE_LOCAL.md)
+> **Versión:** 2.0.0
+> **Fecha:** 2026-07-21
+> **Estado:** ✅ Construido — este documento refleja la arquitectura implementada en `src/main/java/pe/confianza/reportes`
 
 ---
 
@@ -14,7 +14,8 @@
 | Lenguaje | Java | 21 LTS | Records para DTOs; virtual threads NO para el pool de reportes (pool clásico dimensionado) |
 | Framework | **Spring Boot** | 3.3+ | starters: web, jdbc, mail, validation, actuator |
 | Build | **Maven** | 3.9+ | `pom.xml` (ver §2) |
-| Acceso a datos | **Spring JDBC** (`JdbcTemplate` / `NamedParameterJdbcTemplate`) | — | Las queries son SQL crudo complejo → JDBC directo, no JPA (ver §5) |
+| Acceso a datos | **Spring JDBC** (`NamedParameterJdbcTemplate`) | — | Las queries son SQL crudo complejo → JDBC directo, no JPA (ver §5) |
+| Base de datos | **SQL Server** (driver `mssql-jdbc`) | — | Motor real de las queries migradas (bases `dma`, `dwh`, `storage`); los scripts T-SQL con tablas temporales corren como un solo batch (`sp_executesql`), por lo que las `#temp` no contaminan las conexiones del pool |
 | Pool de conexiones | HikariCP | — | Dimensionado acorde al pool de hilos (§4 del doc 03) |
 | Excel | **Apache POI** | 5.2+ | `poi-ooxml` con `SXSSFWorkbook` (streaming) |
 | Correo | **Spring Boot Starter Mail** | — | `JavaMailSender` + `MimeMessageHelper` (adjuntos) |
@@ -96,10 +97,10 @@
       <version>${poi.version}</version>
     </dependency>
 
-    <!-- Driver de BD (ajustar según el motor real: postgresql / mssql-jdbc / ojdbc11) -->
+    <!-- Motor real: SQL Server (las queries migradas usan las bases dma / dwh / storage) -->
     <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
       <scope>runtime</scope>
     </dependency>
 
@@ -137,58 +138,85 @@ Servicios de Reportes (lógica paralela) · Generador de Excel · Servicio de Co
 ```
 task-reportes-back/
 ├── src/main/java/pe/confianza/reportes/
-│   ├── TaskReportesApplication.java        ← @SpringBootApplication @EnableScheduling @EnableAsync
+│   ├── TaskReportesApplication.java        ← @SpringBootApplication @ConfigurationPropertiesScan
 │   │
 │   ├── config/                             ← CONFIGURACIÓN
-│   │   ├── AsyncConfig.java                  ThreadPoolTaskExecutor "reportTaskExecutor" (doc 03 §2)
-│   │   ├── SchedulingConfig.java             Pool del scheduler (doc 03 §5)
-│   │   ├── MailConfig.java                   Ajustes finos de JavaMailSender (si aplica)
+│   │   ├── AsyncConfig.java                  @EnableAsync + ThreadPoolTaskExecutor "reportTaskExecutor" (doc 03 §2)
+│   │   ├── MdcTaskDecorator.java             Propaga el MDC (ejecucionId) a los hilos del pool (RN-07)
+│   │   ├── SchedulingConfig.java             @EnableScheduling + registro DINÁMICO: un CronTrigger por bean
+│   │   │                                     ReporteService leyendo reportes.definiciones.* (AR-07/SC-02)
 │   │   └── properties/
-│   │       ├── ReportesProperties.java       @ConfigurationProperties "reportes.*" (crons, destinatarios)
+│   │       ├── ReportesProperties.java       @ConfigurationProperties "reportes.*" (record @Validated: zona horaria,
+│   │       │                                 dir temporal, remitente, soporte, adjunto-max-mb, definiciones por
+│   │       │                                 reporte con cron/asunto/destinatarios/estrategia de corte)
 │   │       └── ExecutorProperties.java       @ConfigurationProperties "reportes.executor.*"
 │   │
 │   ├── scheduler/                          ← ORQUESTADOR
-│   │   └── ReporteScheduler.java             @Scheduled por reporte; delega en los services; captura fallos
+│   │   └── ReporteScheduler.java             Sin lógica de negocio (AR-01): resuelve corte según la estrategia
+│   │                                         (DIA_ANTERIOR | FIN_MES_ANTERIOR), correlación MDC, captura fallos
+│   │                                         y notifica a soporte (RN-03). Usado por cron y por la API manual.
 │   │
 │   ├── service/                            ← SERVICIOS DE REPORTES (lógica paralela)
 │   │   ├── ReporteService.java               Interfaz común: String codigo(); ReporteResultado generar(LocalDate corte)
-│   │   ├── carteraheredada/
-│   │   │   ├── CarteraHeredadaService.java     Orquesta N queries en paralelo → Excel → correo
-│   │   │   └── CarteraHeredadaQueries.java     SQL crudo migrado 1:1 desde Node.js
-│   │   ├── desembolsocanal/
-│   │   │   ├── DesembolsoCanalService.java
-│   │   │   └── DesembolsoCanalQueries.java
-│   │   └── fondeoestable/
-│   │       ├── FondeoEstableService.java
-│   │       └── FondeoEstableQueries.java
+│   │   ├── ReporteSupport.java               Paso final común: Excel → cuerpo HTML (advertencia de hojas vacías,
+│   │   │                                     RN-04) → correo → ReporteResultado
+│   │   ├── carteraheredada/                  CarteraHeredadaService + CarteraHeredadaQueries + CarteraHeredadaFila
+│   │   ├── desembolsocanal/                  DesembolsoCanalService + Queries + Fila
+│   │   ├── fondeoestable/                    FondeoEstableService + Queries + Fila
+│   │   ├── saldomediovigente/                2 queries en paralelo → 2 hojas (Diana)
+│   │   ├── sacatugarra/                      Base Saca tu Garra (Giancarlo)
+│   │   ├── datoscierre/                      3 queries en paralelo: ratio CE + clientes rurales/migrantes
+│   │   ├── seguros/                          Penetración de seguros, 47 columnas (Giovani)
+│   │   ├── saldopuntual/                     Saldo puntual + saldo medio (Giovani)
+│   │   ├── carteravigenteagro/               Saldo vigente actual/anterior + clientes (Giovani)
+│   │   └── validacioncubo/                   VALIDACIÓN DIARIA: indicadores del cubo + reglas OK/ALERTA/ADVERTENCIA
 │   │
-│   ├── repository/                         ← ACCESO A DATOS
-│   │   ├── ReporteJdbcRepository.java        Métodos @Async que ejecutan queries y devuelven CompletableFuture<List<T>>
-│   │   └── rowmapper/                        RowMappers → Records (CarteraHeredadaFila, DesembolsoCanalFila, ...)
+│   ├── repository/                         ← ACCESO A DATOS (un repositorio por reporte)
+│   │   ├── CarteraHeredadaRepository.java    Métodos @Async("reportTaskExecutor") → CompletableFuture<List<Fila>>
+│   │   ├── ... (DesembolsoCanal, FondeoEstable, SaldoMedioVigente, SacaTuGarra,
+│   │   │        DatosCierre, Seguros, SaldoPuntual, CarteraVigenteAgro, ValidacionCubo)
+│   │   └── support/RowMapperUtils.java       Helpers de mapeo (fechas char(8)/date, SIN ASIGNAR, decimales)
 │   │
 │   ├── excel/                              ← GENERADOR DE EXCEL
-│   │   ├── ExcelGenerator.java               API genérica: hojas, cabeceras, estilos, autosize (doc 04 §2)
-│   │   └── ExcelSheetSpec.java               Especificación declarativa de una hoja (título, columnas, filas)
+│   │   ├── ExcelGenerator.java               API genérica SXSSF: hojas, cabeceras, autofiltro, leyenda vacío (doc 04 §2)
+│   │   ├── ExcelSheetSpec.java               Especificación declarativa de una hoja (título, columnas, filas)
+│   │   ├── EstilosReporte.java               Estilos creados una sola vez por workbook (XL-04)
+│   │   └── FormatoCelda.java                 TEXTO | ENTERO | MONTO | FECHA | PORCENTAJE
 │   │
 │   ├── mail/                               ← SERVICIO DE CORREO
-│   │   └── EmailService.java                 Envío con adjuntos; asunto normado; reintentos (doc 04 §3)
+│   │   └── EmailService.java                 Adjuntos con reintentos 2s/4s/8s, zip > 20 MB, borrado post-envío (doc 04 §3)
 │   │
 │   ├── web/                                ← API MANUAL (soporte)
-│   │   ├── ReporteController.java            POST /api/v1/reportes/{codigo}/ejecutar → 202
-│   │   └── GlobalExceptionHandler.java       ApiError { status, message, timestamp }
+│   │   ├── ReporteController.java            GET /api/v1/reportes · POST /api/v1/reportes/{codigo}/ejecutar → 202
+│   │   ├── GlobalExceptionHandler.java       404 reporte inexistente · 400 corte futuro/inválido · 500 genérico
+│   │   └── ApiError.java                     { status, message, timestamp }
 │   │
 │   └── shared/
 │       ├── ReporteResultado.java             Record: codigo, corte, rutaArchivo, filasTotales, duracionMs, estado
 │       ├── ReporteException.java             Errores de negocio de la generación
-│       └── CorrelacionUtils.java             MDC: reporteId + ejecucionId (RN-07)
+│       ├── ReporteNoEncontradoException.java Código de reporte no registrado (→ 404)
+│       └── CorrelacionUtils.java             MDC: ejecucionId por corrida (RN-07)
 │
 ├── src/main/resources/
-│   ├── application.yml                     ← perfiles dev / prod (ver §4)
+│   ├── application.yml                     ← configuración base + definiciones de los 10 reportes (ver §4)
+│   ├── application-dev.yml                 ← perfil dev: Mailpit local, destinatarios dev@localhost
 │   └── logback-spring.xml                  ← patrón con %X{ejecucionId}
-├── src/test/java/...                       ← tests unitarios + integración (Awaitility para asíncronos)
-├── Dockerfile
+├── src/test/java/pe/confianza/reportes/    ← 17 tests: Excel, correo (reintentos), validación cubo,
+│                                             properties, controller y arranque completo del contexto
+├── Dockerfile                              ← multi-stage (maven → JRE 21 alpine)
+├── docker-compose.yml                      ← app + Mailpit para despliegue local (doc 06)
+├── .env.example                            ← plantilla de variables de entorno (doc 06)
 └── pom.xml
 ```
+
+> **Nota de implementación (scheduler):** a diferencia del sketch original con un
+> método `@Scheduled` por reporte, `SchedulingConfig` registra los crons
+> **dinámicamente**: recorre los beans `ReporteService` y crea un `CronTrigger`
+> con el cron y la zona de `reportes.definiciones.<codigo>`. Así, agregar un
+> reporte nuevo no toca el scheduler (AR-07) y ningún cron queda hardcodeado
+> (SC-02). Si un reporte no tiene bloque en el YAML, la aplicación **falla al
+> arranque** con un mensaje claro — validación deliberada para evitar reportes
+> silenciosamente sin programar.
 
 ### Reglas de arquitectura (no negociables)
 
@@ -211,17 +239,18 @@ spring:
   application:
     name: task-reportes-back
   datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    # SQL Server; el default apunta a localhost para desarrollo (ver doc 06)
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=storage;encrypt=true;trustServerCertificate=true}
+    username: ${DB_USER:sa}
+    password: ${DB_PASSWORD:changeit}
     hikari:
       maximum-pool-size: 10        # ≥ hilos del reportTaskExecutor (doc 03 §4)
       connection-timeout: 30000
   mail:
-    host: ${SMTP_HOST}
-    port: ${SMTP_PORT:587}
-    username: ${SMTP_USER}
-    password: ${SMTP_PASSWORD}
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}        # default: Mailpit local (doc 06)
+    username: ${SMTP_USER:}
+    password: ${SMTP_PASSWORD:}
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
@@ -231,24 +260,31 @@ spring:
 reportes:
   zona-horaria: America/Lima
   directorio-temporal: ${TMP_REPORTES:/tmp/reportes}
+  correo-remitente: ${MAIL_FROM:reportes@confianza.pe}
+  correo-soporte: [ "${MAIL_SOPORTE:soporte-ti@confianza.pe}" ]   # notificación de fallos (RN-03)
+  adjunto-max-mb: 20               # sobre este tamaño el adjunto se comprime a .zip (MA-06)
   executor:
     core-size: 8
     max-size: 8
     queue-capacity: 50
     thread-name-prefix: report-exec-
+  # Un bloque por reporte; la clave es el código kebab-case que devuelve
+  # ReporteService.codigo(). `corte` define la estrategia de fecha de corte:
+  # DIA_ANTERIOR (diarios) o FIN_MES_ANTERIOR (mensuales).
   definiciones:
+    validacion-cubo:
+      cron: "0 0 7 * * *"             # ← copiar EXACTO del cron de Node.js (formato Spring: 6 campos)
+      asunto: "Validación Cubo Diaria - %s"
+      destinatarios: [ "${MAIL_VALIDACIONES:mis-datos@confianza.pe}" ]
+      corte: DIA_ANTERIOR
     cartera-heredada:
-      cron: "0 30 6 * * *"            # ← copiar EXACTO del cron de Node.js (formato Spring: 6 campos)
-      asunto: "Reporte Cartera Heredada - %s"
-      destinatarios: [riesgos@empresa.pe, finanzas@empresa.pe]
-    desembolso-canal:
-      cron: "0 0 7 * * MON-FRI"
-      asunto: "Reporte Desembolso Canal - %s"
-      destinatarios: [canales@empresa.pe]
-    fondeo-estable:
-      cron: "0 0 8 1 * *"
-      asunto: "Reporte Fondeo Estable - %s"
-      destinatarios: [tesoreria@empresa.pe, finanzas@empresa.pe]
+      cron: "0 30 6 1 * *"
+      asunto: "Cartera Heredada PDM - Stock %s"
+      destinatarios: [ "${MAIL_RIESGOS:riesgos@confianza.pe}" ]
+      corte: FIN_MES_ANTERIOR
+    # ... desembolso-canal, fondeo-estable, saldo-medio-vigente, saca-tu-garra,
+    #     datos-cierre, reporte-seguros, saldo-puntual-medio, cartera-vigente-agro
+    #     (ver src/main/resources/application.yml — misma estructura)
 
 management:
   endpoints:
@@ -256,6 +292,10 @@ management:
       exposure:
         include: health, info, metrics, scheduledtasks
 ```
+
+> ⚠️ **Placeholders en listas YAML:** dentro de una lista *flow* (`[ ... ]`) los
+> placeholders `${VAR:default}` deben ir **entre comillas** — la llave `{` rompe
+> el parser de YAML si va sin comillas.
 
 > ⚠️ **CRÍTICO — Formato cron:** Node.js (`node-cron`) usa **5 campos** (`min hora día mes díaSem`);
 > Spring usa **6 campos** (agrega `segundos` al inicio). Al migrar, anteponer `0 `:
@@ -269,11 +309,15 @@ management:
 | Artefacto | Patrón | Ejemplo |
 |---|---|---|
 | Service de reporte | `PascalCase` + sufijo `Service` | `CarteraHeredadaService` |
-| Clase de queries | Sufijo `Queries` (constantes `static final String`) | `CarteraHeredadaQueries` |
+| Repositorio de reporte | Sufijo `Repository`, métodos `@Async("reportTaskExecutor")` | `CarteraHeredadaRepository` |
+| Clase de queries | Sufijo `Queries` (constantes `static final String`, text blocks) | `CarteraHeredadaQueries` |
 | DTO de fila | Record + sufijo `Fila` | `DesembolsoCanalFila` |
 | Propiedades | `kebab-case` en YAML → `camelCase` en Java | `queue-capacity` → `queueCapacity` |
 | Código de reporte | `kebab-case` (clave en YAML y en la API manual) | `cartera-heredada` |
+| Estrategia de corte | Enum en la definición del reporte | `DIA_ANTERIOR`, `FIN_MES_ANTERIOR` |
 | Hilos del pool | Prefijo configurable | `report-exec-1`, `report-exec-2` |
+| Hilos del scheduler | Prefijo fijo | `report-sched-1` |
+| Archivo generado | `<codigo>_<corte>.xlsx` en el dir temporal (XL-06) | `fondeo-estable_2026-06-30.xlsx` |
 
 ---
 
@@ -299,8 +343,11 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 | Aspecto | Decisión |
 |---|---|
-| Instancias | **1 réplica** (los `@Scheduled` no son cluster-aware; 2 réplicas = correos duplicados) |
-| Zona horaria del contenedor | `TZ=America/Lima` + `zone` explícito en cada cron |
+| Instancias | **1 réplica** (los crons registrados no son cluster-aware; 2 réplicas = correos duplicados) |
+| Zona horaria del contenedor | `TZ=America/Lima` + zona explícita en cada `CronTrigger` |
 | Recursos | Memoria dimensionada para POI streaming (SXSSF mantiene ~100 filas en RAM) |
 | Health-check | `GET /actuator/health` |
 | Orquestación | Dokploy / Coolify, imagen en registry privado (mismo pipeline que el MIS Host) |
+
+> El **despliegue local** (variables de entorno, Mailpit, comandos de arranque y
+> verificación) está detallado en el [doc 06 — Despliegue Local](./06_DESPLIEGUE_LOCAL.md).

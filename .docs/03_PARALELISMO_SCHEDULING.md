@@ -1,6 +1,6 @@
 # 03 — Paralelismo y Scheduling (`@Async` + `CompletableFuture` + `@Scheduled`)
 > **Proyecto:** Task Reportes — Orquestador de Reportes Financieros
-> **Documentación Activa:** [README](./README.md) | [01_PRD_MIGRACION](./01_PRD_MIGRACION.md) | [02_TRD_ARQUITECTURA](./02_TRD_ARQUITECTURA.md) | [03_PARALELISMO_SCHEDULING](./03_PARALELISMO_SCHEDULING.md) | [04_EXCEL_CORREO](./04_EXCEL_CORREO.md) | [05_IMPLEMENTATION_PLAN](./05_IMPLEMENTATION_PLAN.md)
+> **Documentación Activa:** [README](./README.md) | [01_PRD_MIGRACION](./01_PRD_MIGRACION.md) | [02_TRD_ARQUITECTURA](./02_TRD_ARQUITECTURA.md) | [03_PARALELISMO_SCHEDULING](./03_PARALELISMO_SCHEDULING.md) | [04_EXCEL_CORREO](./04_EXCEL_CORREO.md) | [05_IMPLEMENTATION_PLAN](./05_IMPLEMENTATION_PLAN.md) | [06_DESPLIEGUE_LOCAL](./06_DESPLIEGUE_LOCAL.md)
 > **Versión:** 1.0.0
 > **Fecha:** 2026-07-20
 > **Estado:** 🟢 Especificación lista para construir
@@ -261,6 +261,16 @@ public class SchedulingConfig implements SchedulingConfigurer {
 ```
 
 ### 5.2 Orquestador
+
+> **Nota — implementación final:** el código construido reemplaza los métodos
+> `@Scheduled` uno-por-reporte de este sketch por un **registro dinámico** en
+> `SchedulingConfig` (implementa `SchedulingConfigurer`): por cada bean
+> `ReporteService` se crea un `CronTrigger` con el cron y la zona de
+> `reportes.definiciones.<codigo>`, y la tarea delega en
+> `ReporteScheduler.ejecutarProgramado(reporte)`, que resuelve la fecha de
+> corte según la estrategia configurada (`DIA_ANTERIOR` | `FIN_MES_ANTERIOR`),
+> abre la correlación MDC y captura fallos (RN-03/RN-07). El sketch siguiente
+> se conserva como referencia del patrón equivalente.
 
 ```java
 @Component

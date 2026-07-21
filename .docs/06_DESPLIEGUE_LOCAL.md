@@ -68,7 +68,7 @@ usa `instanceName=...` (requiere el servicio SQL Browser activo en el servidor).
 | `EMAIL_STARTTLS` | `false` | Para puerto 587: `EMAIL_SSL=false` y `EMAIL_STARTTLS=true` |
 | `EMAIL_FIRMA_NOMBRE` | `Equipo de Reportes` | Firma de los correos |
 | `EMAIL_FIRMA_CARGO` | *(vacío)* | Cargo en la firma |
-| `MAIL_SOPORTE` | `diego.sullcaray@confianza.pe` | Recibe las notificaciones de fallo (RN-03) |
+| `MAIL_SOPORTE` | `michael.palacios@confianza.pe` | Recibe las notificaciones de fallo (RN-03) |
 
 ### 2.3 Destinatarios por reporte (listas separadas por comas)
 

@@ -27,7 +27,7 @@ class ExcelGeneratorTest {
 
     private ExcelGenerator generador() {
         var props = new ReportesProperties("America/Lima", tempDir, "test@localhost",
-                List.of("soporte@localhost"), 20, Map.of());
+                List.of("soporte@localhost"), "Equipo de Reportes", "", "", 20, Map.of());
         return new ExcelGenerator(props);
     }
 

@@ -40,7 +40,7 @@ class EmailServiceTest {
         when(mailSender.createMimeMessage())
                 .thenAnswer(inv -> new MimeMessage(Session.getInstance(new Properties())));
         var props = new ReportesProperties("America/Lima", tempDir, "test@localhost",
-                List.of("soporte@localhost"), 20, Map.of());
+                List.of("soporte@localhost"), "Equipo de Reportes", "", "", 20, Map.of());
         emailService = new EmailService(mailSender, props);
     }
 
@@ -48,7 +48,7 @@ class EmailServiceTest {
     void eliminaElAdjuntoTrasEnvioExitoso() throws Exception {
         Path adjunto = Files.writeString(tempDir.resolve("reporte.xlsx"), "contenido");
 
-        emailService.enviarConAdjunto(List.of("a@b.pe"), "Asunto - 2026-06-30", "<p>ok</p>", adjunto);
+        emailService.enviarConAdjunto(List.of("a@b.pe"), List.of("cc@b.pe"), "Asunto - 2026-06-30", "<p>ok</p>", adjunto);
 
         verify(mailSender).send(any(MimeMessage.class));
         assertThat(adjunto).doesNotExist();
@@ -61,7 +61,7 @@ class EmailServiceTest {
                 .doNothing()
                 .when(mailSender).send(any(MimeMessage.class));
 
-        emailService.enviarConAdjunto(List.of("a@b.pe"), "Asunto - 2026-06-30", "<p>ok</p>", adjunto);
+        emailService.enviarConAdjunto(List.of("a@b.pe"), List.of("cc@b.pe"), "Asunto - 2026-06-30", "<p>ok</p>", adjunto);
 
         verify(mailSender, times(2)).send(any(MimeMessage.class));
         assertThat(adjunto).doesNotExist();
@@ -74,7 +74,7 @@ class EmailServiceTest {
                 .when(mailSender).send(any(MimeMessage.class));
 
         assertThatThrownBy(() ->
-                emailService.enviarConAdjunto(List.of("a@b.pe"), "Asunto - 2026-06-30", "<p>ok</p>", adjunto))
+                emailService.enviarConAdjunto(List.of("a@b.pe"), List.of("cc@b.pe"), "Asunto - 2026-06-30", "<p>ok</p>", adjunto))
                 .isInstanceOf(ReporteException.class)
                 .hasMessageContaining("3 intentos");
 

@@ -2,6 +2,7 @@ package pe.confianza.reportes.service.validacioncubo;
 
 import org.springframework.stereotype.Service;
 import pe.confianza.reportes.excel.ExcelSheetSpec;
+import pe.confianza.reportes.mail.GoogleChatNotifier;
 import pe.confianza.reportes.repository.ValidacionCuboRepository;
 import pe.confianza.reportes.service.ReporteService;
 import pe.confianza.reportes.service.ReporteSupport;
@@ -42,10 +43,13 @@ public class ValidacionCuboService implements ReporteService {
 
     private final ValidacionCuboRepository repository;
     private final ReporteSupport support;
+    private final GoogleChatNotifier chatNotifier;
 
-    public ValidacionCuboService(ValidacionCuboRepository repository, ReporteSupport support) {
+    public ValidacionCuboService(ValidacionCuboRepository repository, ReporteSupport support,
+                                 GoogleChatNotifier chatNotifier) {
         this.repository = repository;
         this.support = support;
+        this.chatNotifier = chatNotifier;
     }
 
     @Override
@@ -77,7 +81,17 @@ public class ValidacionCuboService implements ReporteService {
         var hojas = List.<ExcelSheetSpec<?>>of(
                 ExcelSheetSpec.de("Indicadores", columnasIndicadores(), indicadores),
                 ExcelSheetSpec.de("Validaciones", columnasValidaciones(), validaciones));
-        return support.completar(codigo(), corte, hojas, inicio);
+        var resultado = support.completar(codigo(), corte, hojas, inicio);
+        chatNotifier.notificar(resumenChat(corte, validaciones));
+        return resultado;
+    }
+
+    private static String resumenChat(LocalDate corte, List<ValidacionFila> validaciones) {
+        long alertas = validaciones.stream().filter(v -> ValidacionFila.ALERTA.equals(v.resultado())).count();
+        long advertencias = validaciones.stream().filter(v -> ValidacionFila.ADVERTENCIA.equals(v.resultado())).count();
+        String estado = alertas > 0 ? "🔴 CON ALERTAS" : advertencias > 0 ? "🟡 CON ADVERTENCIAS" : "🟢 OK";
+        return "Validación Cubo " + corte + ": " + estado
+                + " (" + alertas + " alertas, " + advertencias + " advertencias). Detalle en el Excel enviado por correo.";
     }
 
     static List<IndicadorCuboFila> compararIndicadores(LocalDate corte, CuboSnapshot actual, CuboSnapshot anterior) {

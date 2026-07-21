@@ -1,31 +1,48 @@
 spring:
   application:
     name: task-reportes-back
-  datasource:
-    # Motor real: SQL Server (bases dma / dwh / storage referenciadas en las queries)
-    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=storage;encrypt=true;trustServerCertificate=true}
-    username: ${DB_USER:sa}
-    password: ${DB_PASSWORD:changeit}
-    hikari:
-      # Regla de coherencia (doc 03 §4): maximum-pool-size >= executor.max-size
-      maximum-pool-size: 10
-      connection-timeout: 30000
   mail:
-    host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}
-    username: ${SMTP_USER:}
-    password: ${SMTP_PASSWORD:}
+    # Google Workspace (mismas variables que el .env de Node.js).
+    # EMAIL_PASSWORD = contraseña de aplicación de Google: los 16 caracteres
+    # JUNTOS, sin espacios ni guiones. Si el firewall bloquea el 465, usar
+    # EMAIL_PORT=587 con EMAIL_SSL=false y EMAIL_STARTTLS=true.
+    host: ${EMAIL_HOST:smtp.gmail.com}
+    port: ${EMAIL_PORT:465}
+    username: ${EMAIL_USER:usuario@confianza.pe}
+    password: ${EMAIL_PASSWORD:}
     properties:
       mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
+      mail.smtp.ssl.enable: ${EMAIL_SSL:true}
+      mail.smtp.starttls.enable: ${EMAIL_STARTTLS:false}
       mail.smtp.connectiontimeout: 10000
       mail.smtp.timeout: 30000
 
+# Conexión a SQL Server por partes, igual que la ventana "Connect to Server" de
+# SSMS (mismas variables que el .env de Node.js). DB_DOMAIN definido → Windows
+# Authentication (NTLM, DOMINIO\usuario); vacío → SQL Server Authentication.
+# DB_INSTANCE definido (ej. SQLEXPRESS) → instancia nombrada; vacío → puerto DB_PORT.
+db:
+  server: ${DB_SERVER:localhost}
+  database: ${DB_DATABASE:storage}
+  domain: ${DB_DOMAIN:}
+  username: ${DB_USERNAME:sa}
+  password: ${DB_PASSWORD:}
+  instance: ${DB_INSTANCE:}
+  port: ${DB_PORT:1433}
+  encryption: ${DB_ENCRYPTION:false}
+  trust-certificate: ${DB_TRUST_CERTIFICATE:true}
+  pool-size: 10          # regla de coherencia (doc 03 §4): >= executor.max-size
+
 reportes:
-  zona-horaria: America/Lima
-  directorio-temporal: ${TMP_REPORTES:/tmp/reportes}
-  correo-remitente: ${MAIL_FROM:reportes@confianza.pe}
-  correo-soporte: [ "${MAIL_SOPORTE:soporte-ti@confianza.pe}" ]
+  zona-horaria: ${TZ_SCHEDULES:America/Lima}
+  directorio-temporal: ${EXCEL_OUTPUT_PATH:./xlsx_output}
+  correo-remitente: ${EMAIL_USER:usuario@confianza.pe}
+  correo-soporte: ${MAIL_SOPORTE:michael.palacios@confianza.pe}
+  firma-nombre: ${EMAIL_FIRMA_NOMBRE:Equipo de Reportes}
+  firma-cargo: ${EMAIL_FIRMA_CARGO:}
+  # Webhook entrante de un espacio de Google Chat (opcional): notifica el
+  # resultado de la validación diaria del cubo. Si se omite, solo se loguea.
+  google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:}
   adjunto-max-mb: 20
   executor:
     core-size: 8
@@ -33,57 +50,70 @@ reportes:
     queue-capacity: 50
     thread-name-prefix: report-exec-
   # Crons en formato Spring de 6 campos (SC-01). Los horarios son provisionales:
-  # durante la convivencia deben copiarse EXACTOS de los cron de Node.js (RN-02).
+  # durante la convivencia deben copiarse EXACTOS de los cron de Node.js (RN-02,
+  # anteponiendo el campo de segundos al cron de 5 campos).
+  # destinatarios/cc: listas separadas por comas; mismas variables *_PARA / *_CC
+  # que el .env de Node.js.
   definiciones:
     validacion-cubo:                       # VALIDACIÓN DIARIA del cubo comercial
       cron: "0 0 7 * * *"
       asunto: "Validación Cubo Diaria - %s"
-      destinatarios: [ "${MAIL_VALIDACIONES:mis-datos@confianza.pe}" ]
+      destinatarios: ${VALIDACION_CUBO_PARA:michael.palacios@confianza.pe}
+      cc: ${VALIDACION_CUBO_CC:}
       corte: DIA_ANTERIOR
     cartera-heredada:                      # MENSUAL — Cartera Heredada PDM
       cron: "0 30 6 1 * *"
       asunto: "Cartera Heredada PDM - Stock %s"
-      destinatarios: [ "${MAIL_RIESGOS:riesgos@confianza.pe}" ]
+      destinatarios: ${CARTERA_HEREDADA_PARA:abigail.jaimes@confianza.pe,karla.campos@confianza.pe,ricardo.lazo@confianza.pe,alvaro.calderon@confianza.pe}
+      cc: ${CARTERA_HEREDADA_CC:michael.palacios@confianza.pe}
       corte: FIN_MES_ANTERIOR
     desembolso-canal:                      # MENSUAL — Desembolso Canal
       cron: "0 40 6 1 * *"
       asunto: "Desembolso Canal - %s"
-      destinatarios: [ "${MAIL_CANALES:canales@confianza.pe}" ]
+      destinatarios: ${DESEMBOLSO_CANAL_PARA:sergio.sandoval@confianza.pe,sebastien.puertas@confianza.pe}
+      cc: ${DESEMBOLSO_CANAL_CC:abigail.jaimes@confianza.pe,michael.palacios@confianza.pe}
       corte: FIN_MES_ANTERIOR
     fondeo-estable:                        # MENSUAL — Fondeo Estable
       cron: "0 50 6 1 * *"
       asunto: "Fondeo Estable - %s"
-      destinatarios: [ "${MAIL_TESORERIA:tesoreria@confianza.pe}" ]
+      destinatarios: ${FONDEO_ESTABLE_PARA:eddy.martinez@confianza.pe}
+      cc: ${FONDEO_ESTABLE_CC:michael.palacios@confianza.pe,abigail.jaimes@confianza.pe}
       corte: FIN_MES_ANTERIOR
     saldo-medio-vigente:                   # MENSUAL — Saldo Medio Vigente (Diana)
       cron: "0 0 7 1 * *"
       asunto: "Saldo Medio Vigente - %s"
-      destinatarios: [ "${MAIL_FINANZAS:finanzas@confianza.pe}" ]
+      destinatarios: ${SALDO_MEDIO_VIGENTE_PARA:diana.garcia@confianza.pe}
+      cc: ${SALDO_MEDIO_VIGENTE_CC:michael.palacios@confianza.pe,jorge.mercedes@confianza.pe}
       corte: FIN_MES_ANTERIOR
     saca-tu-garra:                         # MENSUAL — Base Saca tu Garra (Giancarlo)
       cron: "0 10 7 1 * *"
       asunto: "Saca tu Garra - %s"
-      destinatarios: [ "${MAIL_COMERCIAL:comercial@confianza.pe}" ]
+      destinatarios: ${REPORTE_GIANCARLO_PARA:giancarlo.hijar@confianza.pe}
+      cc: ${REPORTE_GIANCARLO_CC:michael.palacios@confianza.pe,abigail.jaimes@confianza.pe}
       corte: FIN_MES_ANTERIOR
     datos-cierre:                          # MENSUAL — Ratio CE, clientes nuevos y migrantes
       cron: "0 20 7 1 * *"
       asunto: "Datos Cierre - %s"
-      destinatarios: [ "${MAIL_COMERCIAL:comercial@confianza.pe}" ]
+      destinatarios: ${RATIO_CE_PARA:michael.palacios@confianza.pe}
+      cc: ${RATIO_CE_CC:}
       corte: FIN_MES_ANTERIOR
     reporte-seguros:                       # MENSUAL — Penetración de seguros (Giovani)
       cron: "0 30 7 1 * *"
       asunto: "Reporte Seguros - %s"
-      destinatarios: [ "${MAIL_SEGUROS:seguros@confianza.pe}" ]
+      destinatarios: ${REPORTE_SEGUROS_PARA:michael.palacios@confianza.pe}
+      cc: ${REPORTE_SEGUROS_CC:}
       corte: FIN_MES_ANTERIOR
     saldo-puntual-medio:                   # MENSUAL — Saldo puntual / saldo medio (Giovani)
       cron: "0 40 7 1 * *"
       asunto: "Saldo Puntual - Saldo Medio - %s"
-      destinatarios: [ "${MAIL_PASIVOS:pasivos@confianza.pe}" ]
+      destinatarios: ${SALDO_PUNTUAL_MEDIO_PARA:michael.palacios@confianza.pe}
+      cc: ${SALDO_PUNTUAL_MEDIO_CC:}
       corte: FIN_MES_ANTERIOR
     cartera-vigente-agro:                  # MENSUAL — Cartera vigente producto agro (Giovani)
       cron: "0 50 7 1 * *"
       asunto: "Cartera Vigente Agro - %s"
-      destinatarios: [ "${MAIL_COMERCIAL:comercial@confianza.pe}" ]
+      destinatarios: ${SALDO_VIGENTE_AGRO_PARA:michael.palacios@confianza.pe}
+      cc: ${SALDO_VIGENTE_AGRO_CC:}
       corte: FIN_MES_ANTERIOR
 
 management:

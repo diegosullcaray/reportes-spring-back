@@ -142,13 +142,16 @@ task-reportes-back/
 │   │
 │   ├── config/                             ← CONFIGURACIÓN
 │   │   ├── AsyncConfig.java                  @EnableAsync + ThreadPoolTaskExecutor "reportTaskExecutor" (doc 03 §2)
+│   │   ├── DataSourceConfig.java             Hikari perezoso con la URL armada por DbProperties (NTLM/instancia)
 │   │   ├── MdcTaskDecorator.java             Propaga el MDC (ejecucionId) a los hilos del pool (RN-07)
 │   │   ├── SchedulingConfig.java             @EnableScheduling + registro DINÁMICO: un CronTrigger por bean
 │   │   │                                     ReporteService leyendo reportes.definiciones.* (AR-07/SC-02)
 │   │   └── properties/
+│   │       ├── DbProperties.java             @ConfigurationProperties "db.*" — conexión por partes estilo SSMS
+│   │       │                                 (server/instance/domain NTLM) y jdbcUrl() que arma la cadena
 │   │       ├── ReportesProperties.java       @ConfigurationProperties "reportes.*" (record @Validated: zona horaria,
-│   │       │                                 dir temporal, remitente, soporte, adjunto-max-mb, definiciones por
-│   │       │                                 reporte con cron/asunto/destinatarios/estrategia de corte)
+│   │       │                                 dir salida, remitente, soporte, firma, webhook Chat, definiciones por
+│   │       │                                 reporte con cron/asunto/PARA/CC/estrategia de corte)
 │   │       └── ExecutorProperties.java       @ConfigurationProperties "reportes.executor.*"
 │   │
 │   ├── scheduler/                          ← ORQUESTADOR
@@ -183,8 +186,9 @@ task-reportes-back/
 │   │   ├── EstilosReporte.java               Estilos creados una sola vez por workbook (XL-04)
 │   │   └── FormatoCelda.java                 TEXTO | ENTERO | MONTO | FECHA | PORCENTAJE
 │   │
-│   ├── mail/                               ← SERVICIO DE CORREO
-│   │   └── EmailService.java                 Adjuntos con reintentos 2s/4s/8s, zip > 20 MB, borrado post-envío (doc 04 §3)
+│   ├── mail/                               ← NOTIFICACIONES
+│   │   ├── EmailService.java                 Adjuntos con PARA/CC, reintentos 2s/4s/8s, zip > 20 MB, borrado post-envío (doc 04 §3)
+│   │   └── GoogleChatNotifier.java           Webhook opcional de Google Chat (resultado de la validación diaria)
 │   │
 │   ├── web/                                ← API MANUAL (soporte)
 │   │   ├── ReporteController.java            GET /api/v1/reportes · POST /api/v1/reportes/{codigo}/ejecutar → 202
@@ -234,34 +238,53 @@ task-reportes-back/
 
 ## 4. Configuración (`application.yml`)
 
+Las variables de entorno usan **los mismos nombres que el `.env` del proyecto
+Node.js** (`DB_SERVER`, `DB_DOMAIN`, `EMAIL_USER`, `*_PARA`/`*_CC`, …) para que
+la configuración existente se traslade sin renombrar nada — catálogo completo
+en el [doc 06](./06_DESPLIEGUE_LOCAL.md).
+
 ```yaml
 spring:
   application:
     name: task-reportes-back
-  datasource:
-    # SQL Server; el default apunta a localhost para desarrollo (ver doc 06)
-    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=storage;encrypt=true;trustServerCertificate=true}
-    username: ${DB_USER:sa}
-    password: ${DB_PASSWORD:changeit}
-    hikari:
-      maximum-pool-size: 10        # ≥ hilos del reportTaskExecutor (doc 03 §4)
-      connection-timeout: 30000
   mail:
-    host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}        # default: SMTP local de pruebas (doc 06)
-    username: ${SMTP_USER:}
-    password: ${SMTP_PASSWORD:}
+    # Google Workspace; EMAIL_PASSWORD = contraseña de aplicación (16 caracteres
+    # juntos). Si el firewall bloquea el 465: EMAIL_PORT=587 + EMAIL_SSL=false
+    # + EMAIL_STARTTLS=true.
+    host: ${EMAIL_HOST:smtp.gmail.com}
+    port: ${EMAIL_PORT:465}
+    username: ${EMAIL_USER:usuario@confianza.pe}
+    password: ${EMAIL_PASSWORD:}
     properties:
       mail.smtp.auth: true
-      mail.smtp.starttls.enable: true
-      mail.smtp.connectiontimeout: 10000
-      mail.smtp.timeout: 30000
+      mail.smtp.ssl.enable: ${EMAIL_SSL:true}
+      mail.smtp.starttls.enable: ${EMAIL_STARTTLS:false}
+
+# Conexión a SQL Server POR PARTES (como la ventana "Connect to Server" de SSMS).
+# La cadena JDBC la arma DbProperties.jdbcUrl(): DB_DOMAIN definido → Windows
+# Authentication (authenticationScheme=NTLM); DB_INSTANCE definido → instancia
+# nombrada (instanceName=...); si no, puerto directo. El DataSource lo construye
+# DataSourceConfig con Hikari en modo perezoso (arranca sin BD accesible).
+db:
+  server: ${DB_SERVER:localhost}
+  database: ${DB_DATABASE:storage}
+  domain: ${DB_DOMAIN:}
+  username: ${DB_USERNAME:sa}
+  password: ${DB_PASSWORD:}
+  instance: ${DB_INSTANCE:}
+  port: ${DB_PORT:1433}
+  encryption: ${DB_ENCRYPTION:false}
+  trust-certificate: ${DB_TRUST_CERTIFICATE:true}
+  pool-size: 10                    # ≥ hilos del reportTaskExecutor (doc 03 §4)
 
 reportes:
-  zona-horaria: America/Lima
-  directorio-temporal: ${TMP_REPORTES:/tmp/reportes}
-  correo-remitente: ${MAIL_FROM:reportes@confianza.pe}
-  correo-soporte: [ "${MAIL_SOPORTE:soporte-ti@confianza.pe}" ]   # notificación de fallos (RN-03)
+  zona-horaria: ${TZ_SCHEDULES:America/Lima}
+  directorio-temporal: ${EXCEL_OUTPUT_PATH:./xlsx_output}
+  correo-remitente: ${EMAIL_USER:usuario@confianza.pe}
+  correo-soporte: ${MAIL_SOPORTE:michael.palacios@confianza.pe}   # fallos (RN-03)
+  firma-nombre: ${EMAIL_FIRMA_NOMBRE:Equipo de Reportes}
+  firma-cargo: ${EMAIL_FIRMA_CARGO:}
+  google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:}   # notifica la validación diaria (opcional)
   adjunto-max-mb: 20               # sobre este tamaño el adjunto se comprime a .zip (MA-06)
   executor:
     core-size: 8
@@ -269,18 +292,21 @@ reportes:
     queue-capacity: 50
     thread-name-prefix: report-exec-
   # Un bloque por reporte; la clave es el código kebab-case que devuelve
-  # ReporteService.codigo(). `corte` define la estrategia de fecha de corte:
+  # ReporteService.codigo(). destinatarios/cc son listas separadas por comas
+  # (mismas variables *_PARA/*_CC del .env de Node). `corte` define la fecha:
   # DIA_ANTERIOR (diarios) o FIN_MES_ANTERIOR (mensuales).
   definiciones:
     validacion-cubo:
       cron: "0 0 7 * * *"             # ← copiar EXACTO del cron de Node.js (formato Spring: 6 campos)
       asunto: "Validación Cubo Diaria - %s"
-      destinatarios: [ "${MAIL_VALIDACIONES:mis-datos@confianza.pe}" ]
+      destinatarios: ${VALIDACION_CUBO_PARA:michael.palacios@confianza.pe}
+      cc: ${VALIDACION_CUBO_CC:}
       corte: DIA_ANTERIOR
     cartera-heredada:
       cron: "0 30 6 1 * *"
       asunto: "Cartera Heredada PDM - Stock %s"
-      destinatarios: [ "${MAIL_RIESGOS:riesgos@confianza.pe}" ]
+      destinatarios: ${CARTERA_HEREDADA_PARA:abigail.jaimes@confianza.pe,karla.campos@confianza.pe,ricardo.lazo@confianza.pe,alvaro.calderon@confianza.pe}
+      cc: ${CARTERA_HEREDADA_CC:michael.palacios@confianza.pe}
       corte: FIN_MES_ANTERIOR
     # ... desembolso-canal, fondeo-estable, saldo-medio-vigente, saca-tu-garra,
     #     datos-cierre, reporte-seguros, saldo-puntual-medio, cartera-vigente-agro
@@ -292,10 +318,6 @@ management:
       exposure:
         include: health, info, metrics, scheduledtasks
 ```
-
-> ⚠️ **Placeholders en listas YAML:** dentro de una lista *flow* (`[ ... ]`) los
-> placeholders `${VAR:default}` deben ir **entre comillas** — la llave `{` rompe
-> el parser de YAML si va sin comillas.
 
 > ⚠️ **CRÍTICO — Formato cron:** Node.js (`node-cron`) usa **5 campos** (`min hora día mes díaSem`);
 > Spring usa **6 campos** (agrega `segundos` al inicio). Al migrar, anteponer `0 `:

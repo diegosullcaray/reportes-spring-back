@@ -42,9 +42,10 @@ variables, perfiles y comandos está en [`.docs/06_DESPLIEGUE_LOCAL.md`](.docs/0
 # Desarrollo: perfil dev + configuración personal en application-local.yml (gitignored)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,local
 
-# O con variables de entorno
-DB_URL='jdbc:sqlserver://<host>;databaseName=storage;...' DB_USER=... DB_PASSWORD=... \
-SMTP_HOST=... SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+# O con variables de entorno (mismos nombres que el .env del proyecto Node.js:
+# DB_SERVER/DB_DOMAIN/DB_INSTANCE estilo SSMS, EMAIL_* de Google Workspace, *_PARA/*_CC)
+DB_SERVER=SERVIDOR-BD DB_DATABASE=storage DB_DOMAIN=DOMINIO DB_USERNAME=usuario DB_PASSWORD=... \
+EMAIL_USER=usuario@confianza.pe EMAIL_PASSWORD=... SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
 
 # Empaquetado ejecutable (producción)
 ./mvnw clean package && java -jar target/task-reportes-back-1.0.0.jar
@@ -70,5 +71,5 @@ Sin cambios en scheduler, Excel ni correo.
 ## Pendientes de convivencia
 
 - Copiar los **crons exactos** del Node.js actual (los horarios en `application.yml` son provisionales — RN-02).
-- Confirmar destinatarios reales por reporte (hoy salen de variables `MAIL_*`).
+- Los destinatarios por defecto salen del `.env` de Node.js (variables `*_PARA`/`*_CC`); confirmar los de `datos-cierre`, `reporte-seguros`, `saldo-puntual-medio` y `cartera-vigente-agro`, que en el template original tenían placeholders.
 - `validacion-cubo`: confirmar la vista/tabla real del cubo (el `.docs` solo trae el Excel de indicadores; ver TODO en `ValidacionCuboQueries`).

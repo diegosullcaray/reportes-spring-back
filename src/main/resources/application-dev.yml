@@ -4,29 +4,43 @@ spring:
     port: 1025          # SMTP local de pruebas
     properties:
       mail.smtp.auth: false
+      mail.smtp.ssl.enable: false
       mail.smtp.starttls.enable: false
 
 reportes:
   correo-remitente: dev@localhost
-  correo-soporte: [ dev@localhost ]
+  correo-soporte: dev@localhost
+  google-chat-webhook-url: ""
+  # En dev TODOS los correos (PARA y CC) van a dev@localhost: jamás a
+  # destinatarios reales.
   definiciones:
     validacion-cubo:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     cartera-heredada:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     desembolso-canal:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     fondeo-estable:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     saldo-medio-vigente:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     saca-tu-garra:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     datos-cierre:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     reporte-seguros:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     saldo-puntual-medio:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""
     cartera-vigente-agro:
-      destinatarios: [ dev@localhost ]
+      destinatarios: dev@localhost
+      cc: ""

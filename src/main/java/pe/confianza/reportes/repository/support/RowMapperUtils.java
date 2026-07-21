@@ -18,7 +18,14 @@ public final class RowMapperUtils {
 
     /** Lee una fecha venga como DATE/DATETIME o como texto 'yyyyMMdd' / 'yyyy-MM-dd'. */
     public static LocalDate fecha(ResultSet rs, String columna) throws SQLException {
-        Object valor = rs.getObject(columna);
+        return convertirFecha(rs.getObject(columna));
+    }
+
+    public static LocalDate fecha(ResultSet rs, int columna) throws SQLException {
+        return convertirFecha(rs.getObject(columna));
+    }
+
+    private static LocalDate convertirFecha(Object valor) {
         return switch (valor) {
             case null -> null;
             case java.sql.Date d -> d.toLocalDate();

@@ -1,7 +1,9 @@
 package pe.confianza.reportes.config.properties;
 
 import org.junit.jupiter.api.Test;
-import pe.confianza.reportes.shared.ReporteException;
+
+import pe.confianza.reportes_programados.task_reportes_back.config.properties.ReportesProperties;
+import pe.confianza.reportes_programados.task_reportes_back.shared.ReporteException;
 
 import java.nio.file.Path;
 import java.time.LocalDate;

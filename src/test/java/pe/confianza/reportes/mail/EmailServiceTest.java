@@ -8,8 +8,10 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mockito;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
-import pe.confianza.reportes.config.properties.ReportesProperties;
-import pe.confianza.reportes.shared.ReporteException;
+
+import pe.confianza.reportes_programados.task_reportes_back.config.properties.ReportesProperties;
+import pe.confianza.reportes_programados.task_reportes_back.mail.EmailService;
+import pe.confianza.reportes_programados.task_reportes_back.shared.ReporteException;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

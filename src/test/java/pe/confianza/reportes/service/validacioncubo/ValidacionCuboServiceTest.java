@@ -2,6 +2,10 @@ package pe.confianza.reportes.service.validacioncubo;
 
 import org.junit.jupiter.api.Test;
 
+import pe.confianza.reportes_programados.task_reportes_back.service.validacioncubo.CuboSnapshot;
+import pe.confianza.reportes_programados.task_reportes_back.service.validacioncubo.ValidacionCuboService;
+import pe.confianza.reportes_programados.task_reportes_back.service.validacioncubo.ValidacionFila;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 

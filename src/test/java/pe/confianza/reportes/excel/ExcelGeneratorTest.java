@@ -4,7 +4,11 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pe.confianza.reportes.config.properties.ReportesProperties;
+
+import pe.confianza.reportes_programados.task_reportes_back.config.properties.ReportesProperties;
+import pe.confianza.reportes_programados.task_reportes_back.excel.ExcelGenerator;
+import pe.confianza.reportes_programados.task_reportes_back.excel.ExcelSheetSpec;
+import pe.confianza.reportes_programados.task_reportes_back.excel.FormatoCelda;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -15,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static pe.confianza.reportes.excel.ExcelSheetSpec.col;
+import static pe.confianza.reportes_programados.task_reportes_back.excel.ExcelSheetSpec.*;
 
 class ExcelGeneratorTest {
 

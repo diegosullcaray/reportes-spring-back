@@ -7,10 +7,13 @@ import org.mockito.Mockito;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import pe.confianza.reportes.config.properties.ReportesProperties;
-import pe.confianza.reportes.scheduler.ReporteScheduler;
-import pe.confianza.reportes.service.ReporteService;
-import pe.confianza.reportes.shared.ReporteResultado;
+
+import pe.confianza.reportes_programados.task_reportes_back.config.properties.ReportesProperties;
+import pe.confianza.reportes_programados.task_reportes_back.scheduler.ReporteScheduler;
+import pe.confianza.reportes_programados.task_reportes_back.service.ReporteService;
+import pe.confianza.reportes_programados.task_reportes_back.shared.ReporteResultado;
+import pe.confianza.reportes_programados.task_reportes_back.web.GlobalExceptionHandler;
+import pe.confianza.reportes_programados.task_reportes_back.web.ReporteController;
 
 import java.nio.file.Path;
 import java.time.LocalDate;

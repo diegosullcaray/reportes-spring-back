@@ -10,8 +10,5 @@ public final class ControlCargasQueries {
     private ControlCargasQueries() {
     }
 
-    public static final String ESTADO_PROCESOS = """
-            SET NOCOUNT ON;
-            EXEC mod_rep.com.RSRPD001 @OPT = '2'
-            """;
+    public static final String ESTADO_PROCESOS = "EXEC mod_rep.com.RSRPD001 @OPT = '2'";
 }

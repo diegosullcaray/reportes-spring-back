@@ -34,4 +34,4 @@ build/
 
 # Configuración local con credenciales (perfil "local" de Spring — nunca commitear)
 .env
-src/main/resources/application-local.yml
+src/main/resources/application.yml

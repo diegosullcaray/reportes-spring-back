@@ -43,7 +43,10 @@ public record DbProperties(
            .append(";encrypt=").append(encryption)
            .append(";trustServerCertificate=").append(trustCertificate);
         if (!domain.isBlank()) {
-            url.append(";authenticationScheme=NTLM;domain=").append(domain);
+            // El driver de Microsoft exige integratedSecurity=true junto con
+            // authenticationScheme=NTLM; sin esa bandera ignora el esquema y
+            // cae silenciosamente a SQL Server Authentication.
+            url.append(";integratedSecurity=true;authenticationScheme=NTLM;domain=").append(domain);
         }
         return url.toString();
     }

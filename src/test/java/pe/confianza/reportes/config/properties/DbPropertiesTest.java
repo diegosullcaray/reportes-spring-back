@@ -23,7 +23,7 @@ class DbPropertiesTest {
         assertThat(db.jdbcUrl()).isEqualTo(
                 "jdbc:sqlserver://SERVIDOR;instanceName=SQLEXPRESS;databaseName=storage"
                         + ";encrypt=false;trustServerCertificate=true"
-                        + ";authenticationScheme=NTLM;domain=DOMINIO");
+                        + ";integratedSecurity=true;authenticationScheme=NTLM;domain=DOMINIO");
     }
 
     @Test

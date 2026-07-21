@@ -3,11 +3,13 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!-- %X{ejecucionId}: id de correlación por corrida de reporte (RN-07) -->
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{ejecucionId:-}] %logger{36} - %msg%n</pattern>
+            <!-- Cambia el patrón por este: -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%thread]
+                [%X{traceId:-},%X{spanId:-}] %cyan(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
 
     <root level="INFO">
-        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="CONSOLE" />
     </root>
 </configuration>

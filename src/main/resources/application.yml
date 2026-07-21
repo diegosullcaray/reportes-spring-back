@@ -1,6 +1,9 @@
 spring:
   application:
     name: task-reportes-back
+  output:
+    ansi:
+      enabled: ALWAYS
   mail:
     # Google Workspace (mismas variables que el .env de Node.js).
     # EMAIL_PASSWORD = contraseña de aplicación de Google: los 16 caracteres

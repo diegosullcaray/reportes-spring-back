@@ -35,10 +35,19 @@ La especificación completa vive en [`.docs/`](.docs/README.md) (PRD, TRD, paral
 
 ## Operación
 
+Despliegue con mecanismos propios de Spring Boot (sin Docker); la guía completa de
+variables, perfiles y comandos está en [`.docs/06_DESPLIEGUE_LOCAL.md`](.docs/06_DESPLIEGUE_LOCAL.md).
+
 ```bash
-# Ejecutar (dev usa Mailpit en localhost:1025)
+# Desarrollo: perfil dev + configuración personal en application-local.yml (gitignored)
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev,local
+
+# O con variables de entorno
 DB_URL='jdbc:sqlserver://<host>;databaseName=storage;...' DB_USER=... DB_PASSWORD=... \
-SMTP_HOST=... ./mvnw spring-boot:run
+SMTP_HOST=... SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+
+# Empaquetado ejecutable (producción)
+./mvnw clean package && java -jar target/task-reportes-back-1.0.0.jar
 
 # Listar reportes
 GET /api/v1/reportes

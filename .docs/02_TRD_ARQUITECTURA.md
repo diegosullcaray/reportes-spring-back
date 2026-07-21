@@ -22,7 +22,7 @@
 | Scheduling | Spring `@Scheduled` | — | `@EnableScheduling`; expresiones cron 1:1 con Node.js |
 | Concurrencia | `ThreadPoolTaskExecutor` + `@Async` + `CompletableFuture` | — | Ver [doc 03](./03_PARALELISMO_SCHEDULING.md) |
 | Observabilidad | Actuator + Micrometer | — | health, métricas del executor, MDC en logs |
-| Contenedores | Docker (multi-stage) | — | JRE 21 alpine; Dokploy / Coolify |
+| Despliegue | Jar ejecutable (`spring-boot-maven-plugin`) | — | `java -jar` como servicio del sistema; sin contenedores |
 
 > **Decisión JDBC vs JPA:** el proyecto es de *lectura analítica* (queries SQL complejas ya
 > escritas en Node.js) sin modelo de dominio mutable. `JdbcTemplate` permite migrar las
@@ -199,15 +199,15 @@ task-reportes-back/
 │
 ├── src/main/resources/
 │   ├── application.yml                     ← configuración base + definiciones de los 10 reportes (ver §4)
-│   ├── application-dev.yml                 ← perfil dev: Mailpit local, destinatarios dev@localhost
+│   ├── application-dev.yml                 ← perfil dev: SMTP local, destinatarios dev@localhost
 │   └── logback-spring.xml                  ← patrón con %X{ejecucionId}
 ├── src/test/java/pe/confianza/reportes/    ← 17 tests: Excel, correo (reintentos), validación cubo,
 │                                             properties, controller y arranque completo del contexto
-├── Dockerfile                              ← multi-stage (maven → JRE 21 alpine)
-├── docker-compose.yml                      ← app + Mailpit para despliegue local (doc 06)
-├── .env.example                            ← plantilla de variables de entorno (doc 06)
-└── pom.xml
+└── pom.xml                                 ← empaquetado jar ejecutable (spring-boot-maven-plugin)
 ```
+
+> La configuración local personal vive en `src/main/resources/application-local.yml`
+> (perfil `local`, ignorado por git) — ver [doc 06](./06_DESPLIEGUE_LOCAL.md).
 
 > **Nota de implementación (scheduler):** a diferencia del sketch original con un
 > método `@Scheduled` por reporte, `SchedulingConfig` registra los crons
@@ -248,7 +248,7 @@ spring:
       connection-timeout: 30000
   mail:
     host: ${SMTP_HOST:localhost}
-    port: ${SMTP_PORT:1025}        # default: Mailpit local (doc 06)
+    port: ${SMTP_PORT:1025}        # default: SMTP local de pruebas (doc 06)
     username: ${SMTP_USER:}
     password: ${SMTP_PASSWORD:}
     properties:
@@ -323,31 +323,24 @@ management:
 
 ## 6. Estrategia de Despliegue
 
-### Dockerfile (multi-stage)
+El despliegue usa **mecanismos propios de Spring Boot** (sin Docker): el
+`spring-boot-maven-plugin` produce un **jar ejecutable autocontenido** que se
+corre directo con la JVM y se configura por variables de entorno / perfiles.
 
-```dockerfile
-FROM maven:3.9-eclipse-temurin-21-alpine AS builder
-WORKDIR /app
-COPY pom.xml .
-RUN mvn -q dependency:go-offline
-COPY src ./src
-RUN mvn -q package -DskipTests
-
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-COPY --from=builder /app/target/task-reportes-back-*.jar app.jar
-ENV TZ=America/Lima
-EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "app.jar"]
+```bash
+./mvnw clean package                          # compila + tests → target/task-reportes-back-1.0.0.jar
+java -jar target/task-reportes-back-1.0.0.jar # producción: sin perfiles dev/local
 ```
 
 | Aspecto | Decisión |
 |---|---|
-| Instancias | **1 réplica** (los crons registrados no son cluster-aware; 2 réplicas = correos duplicados) |
-| Zona horaria del contenedor | `TZ=America/Lima` + zona explícita en cada `CronTrigger` |
+| Artefacto | Jar ejecutable de Spring Boot (`./mvnw clean package`), corrido como servicio del sistema (systemd o equivalente) |
+| Instancias | **1 instancia** (los crons registrados no son cluster-aware; 2 instancias = correos duplicados) |
+| Zona horaria | `America/Lima` en el host + zona explícita en cada `CronTrigger` (SC-03) |
+| Configuración | Variables de entorno (`DB_*`, `SMTP_*`, `MAIL_*`) sobre los placeholders de `application.yml`; perfiles `dev`/`local` solo para desarrollo |
 | Recursos | Memoria dimensionada para POI streaming (SXSSF mantiene ~100 filas en RAM) |
 | Health-check | `GET /actuator/health` |
-| Orquestación | Dokploy / Coolify, imagen en registry privado (mismo pipeline que el MIS Host) |
 
-> El **despliegue local** (variables de entorno, Mailpit, comandos de arranque y
-> verificación) está detallado en el [doc 06 — Despliegue Local](./06_DESPLIEGUE_LOCAL.md).
+> El **despliegue local** (catálogo de variables, dónde se cambian, perfiles
+> `dev`/`local` y comandos de arranque) está detallado en el
+> [doc 06 — Despliegue Local](./06_DESPLIEGUE_LOCAL.md).

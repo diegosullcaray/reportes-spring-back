@@ -1,7 +1,7 @@
 spring:
   mail:
     host: localhost
-    port: 1025          # Mailpit / MailHog local
+    port: 1025          # SMTP local de pruebas
     properties:
       mail.smtp.auth: false
       mail.smtp.starttls.enable: false

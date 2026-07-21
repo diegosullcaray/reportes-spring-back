@@ -34,7 +34,7 @@ regulatorios y operativos de la organización (ej. *Cartera Heredada*, *Desembol
 | **Paridad funcional** | Cada cron job, query, Excel y correo de Node.js tiene su equivalente exacto en Spring Boot. |
 | **Paralelismo real** | Las consultas y la generación de reportes se ejecutan en paralelo (`@Async` + `CompletableFuture.allOf()`), nunca de forma secuencial. |
 | **Operabilidad** | Logs estructurados por ejecución, métricas del pool de hilos y health-checks vía Actuator. |
-| **Estandarización** | Mismo stack, convenciones y despliegue Docker que el resto del ecosistema MIS. |
+| **Estandarización** | Mismo stack y convenciones que el resto del ecosistema MIS; despliegue como jar ejecutable de Spring Boot. |
 
 ---
 
@@ -125,6 +125,6 @@ regulatorios y operativos de la organización (ej. *Cartera Heredada*, *Desembol
 - **Maven** como gestor de dependencias (`pom.xml`).
 - Acceso de solo lectura a las **mismas bases de datos** que consulta hoy Node.js.
 - **Servidor SMTP corporativo** (mismas credenciales/relay que usa nodemailer hoy).
-- Despliegue en **imagen Docker** (JRE 21 alpine), orquestada con Dokploy/Coolify.
+- Despliegue como **jar ejecutable de Spring Boot** (`./mvnw clean package` → `java -jar`), corrido como servicio del sistema en una sola instancia.
 - Período de **convivencia** (ambos sistemas generando en paralelo) para validar paridad
   antes del apagado de Node.js — ver FASE 5 del [plan](./05_IMPLEMENTATION_PLAN.md).

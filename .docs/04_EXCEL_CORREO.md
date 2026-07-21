@@ -133,6 +133,59 @@ Reemplazo directo de `nodemailer`. La configuración SMTP vive en `application.y
 | MA-04 | Envío con **reintentos**: 3 intentos con backoff (2s, 4s, 8s) ante fallos SMTP transitorios; al agotarse, el reporte se marca fallido y se conserva el archivo para reenvío manual. |
 | MA-05 | El envío es parte de la corrida del reporte (mismo `ejecucionId` en logs), pero el `EmailService` es genérico y no conoce el negocio (AR-04). |
 | MA-06 | Tamaño del adjunto vigilado: si supera el límite del relay (configurable, default 20 MB), se comprime a `.zip` antes de adjuntar. |
+| MA-07 | Firma al pie de **todo** correo (adjunto o de fallo): nombre y cargo configurables (`reportes.firma-nombre` / `firma-cargo`); si hay logo configurado (`reportes.firma-logo-path`), se embebe como imagen **inline** (`cid:`), nunca como URL externa — así se ve en Outlook/Gmail aunque el cliente bloquee imágenes remotas. |
+
+### 2.0 Firma corporativa e imagen del correo
+
+Réplica exacta de la firma del proyecto Node.js original — ver
+[`.docs/FIRMA/images/firma/email-template.js`](./FIRMA/images/firma/email-template.js)
+(plantilla de referencia) y [`.docs/FIRMA/images/image.png`](./FIRMA/images/image.png)
+(logo original). **Todo** correo saliente la lleva al pie: el del reporte
+(`ReporteSupport`) y el de aviso de fallo a soporte (`ReporteScheduler`),
+armada una sola vez por `FirmaHtmlBuilder` (`mail/FirmaHtmlBuilder.java`) para
+no duplicar el HTML en dos lugares.
+
+```
+┌─────────┬──┬─────────────────────────────┐
+│         │▎ │ Nombre Apellido    (azul)   │
+│  [LOGO] │▎ │ Cargo              (negrita)│
+│  150px  │▎ │ Dirección          (gris)   │
+│         │▎ │ www.confianza.pe   (azul)   │
+└─────────┴──┴─────────────────────────────┘
+                ↑ borde izquierdo #0072CE
+```
+
+| Propiedad | Variable de entorno | Default | Descripción |
+|---|---|---|---|
+| `reportes.firma-nombre` | `EMAIL_FIRMA_NOMBRE` | `Equipo de Reportes` | Nombre, en azul corporativo (`#0072CE`) |
+| `reportes.firma-cargo` | `EMAIL_FIRMA_CARGO` | *(vacío)* | Cargo, en negrita debajo del nombre |
+| `reportes.firma-direccion` | `EMAIL_FIRMA_DIRECCION` | `Las Begonias 441 oficina 338C, San Isidro, Lima` | Dirección, en gris |
+| `reportes.firma-web` | `EMAIL_FIRMA_WEB` | `www.confianza.pe` | Enlace al pie, en azul negrita (se antepone `https://`) |
+| `reportes.firma-logo-path` | `EMAIL_FIRMA_LOGO_PATH` | `classpath:static/logo-confianza.png` | Logo, embebido inline (ver abajo) |
+
+**El logo ya viene incluido**: el archivo real de Financiera Confianza está en
+`src/main/resources/static/logo-confianza.png` (copiado del `.docs/FIRMA/`
+original) y queda empaquetado dentro del jar — funciona out-of-the-box sin
+configurar nada. `firma-logo-path` admite tres formas:
+
+| Prefijo | Resuelve a | Cuándo usarlo |
+|---|---|---|
+| `classpath:ruta` | Recurso empaquetado en el jar | Default; el logo corporativo estándar |
+| `file:ruta` | Archivo en disco, ruta explícita | Un logo distinto sin recompilar |
+| *(sin prefijo)* | Archivo en disco, ruta tal cual | Igual que `file:`, por compatibilidad |
+
+Si la ruta configurada no resuelve a un recurso existente, `EmailService`
+**no falla el envío**: loguea un `WARN` (`reportes.firma-logo-path='...' no
+existe; el correo se envía sin logo`) y manda el correo solo con el bloque de
+texto. Esto es intencional para que un logo mal configurado nunca tumbe un
+reporte (RN-03).
+
+Mecanismo interno: `MimeMessageHelper.addInline(EmailService.LOGO_CONTENT_ID, ...)`
+adjunta la imagen con `Content-ID: <firma-logo>`, y el HTML del correo la
+referencia con `<img src="cid:firma-logo">` — el estándar para que los
+clientes de correo la muestren sin depender de descargar nada externo (a
+diferencia de una `<img src="https://...">`, que Outlook/Gmail suelen
+bloquear por defecto).
 
 ### 2.1 `EmailService` (esqueleto)
 

@@ -30,7 +30,7 @@ class ReportesPropertiesTest {
     @Test
     void definicionInexistenteLanzaErrorClaro() {
         var props = new ReportesProperties("America/Lima", Path.of("/tmp"), "a@b.pe",
-                List.of("s@b.pe"), "Equipo de Reportes", "", "", 20, Map.of());
+                List.of("s@b.pe"), "Equipo de Reportes", "", "", "", "", "", 20, Map.of());
 
         assertThatThrownBy(() -> props.definicion("no-existe"))
                 .isInstanceOf(ReporteException.class)

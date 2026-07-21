@@ -188,6 +188,8 @@ task-reportes-back/
 │   │
 │   ├── mail/                               ← NOTIFICACIONES
 │   │   ├── EmailService.java                 Adjuntos con PARA/CC, reintentos 2s/4s/8s, zip > 20 MB, borrado post-envío (doc 04 §3)
+│   │   ├── FirmaHtmlBuilder.java              Firma corporativa (logo cid + nombre/cargo/dirección/web), compartida
+│   │   │                                     por ReporteSupport y ReporteScheduler (doc 04 §2.0)
 │   │   └── GoogleChatNotifier.java           Webhook opcional de Google Chat (resultado de la validación diaria)
 │   │
 │   ├── web/                                ← API MANUAL (soporte)
@@ -205,7 +207,7 @@ task-reportes-back/
 │   ├── application.yml                     ← configuración base + definiciones de los 10 reportes (ver §4)
 │   ├── application-dev.yml                 ← perfil dev: SMTP local, destinatarios dev@localhost
 │   └── logback-spring.xml                  ← patrón con %X{ejecucionId}
-├── src/test/java/pe/confianza/reportes/    ← 17 tests: Excel, correo (reintentos), validación cubo,
+├── src/test/java/pe/confianza/reportes/    ← 23 tests: Excel, correo (reintentos, firma/logo classpath), validación cubo,
 │                                             properties, controller y arranque completo del contexto
 └── pom.xml                                 ← empaquetado jar ejecutable (spring-boot-maven-plugin)
 ```

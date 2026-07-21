@@ -27,4 +27,7 @@ reportes:
   correo-soporte: mi.usuario@confianza.pe
   firma-nombre: Nombre Apellido
   firma-cargo: Cargo
+  # firma-direccion y firma-web ya traen el default corporativo (application.yml);
+  # el logo también (classpath:static/logo-confianza.png). Para usar otra imagen:
+  # firma-logo-path: file:C:/ruta/a/otro-logo.png
   # google-chat-webhook-url: https://chat.googleapis.com/v1/spaces/.../messages?key=...&token=...

@@ -7,6 +7,7 @@ import pe.confianza.reportes.config.properties.ReportesProperties;
 import pe.confianza.reportes.excel.ExcelGenerator;
 import pe.confianza.reportes.excel.ExcelSheetSpec;
 import pe.confianza.reportes.mail.EmailService;
+import pe.confianza.reportes.mail.FirmaHtmlBuilder;
 import pe.confianza.reportes.shared.ReporteResultado;
 
 import java.nio.file.Path;
@@ -25,12 +26,14 @@ public class ReporteSupport {
     private final ExcelGenerator excelGenerator;
     private final EmailService emailService;
     private final ReportesProperties properties;
+    private final FirmaHtmlBuilder firma;
 
     public ReporteSupport(ExcelGenerator excelGenerator, EmailService emailService,
-                          ReportesProperties properties) {
+                          ReportesProperties properties, FirmaHtmlBuilder firma) {
         this.excelGenerator = excelGenerator;
         this.emailService = emailService;
         this.properties = properties;
+        this.firma = firma;
     }
 
     public ReporteResultado completar(String codigo, LocalDate corte,
@@ -67,12 +70,8 @@ public class ReporteSupport {
             sb.append("<p><b>Advertencia:</b> las siguientes hojas no tienen registros para el período: ")
               .append(String.join(", ", vacias)).append("</p>");
         }
-        sb.append("<p>Saludos,<br><b>").append(properties.firmaNombre()).append("</b>");
-        if (!properties.firmaCargo().isBlank()) {
-            sb.append("<br>").append(properties.firmaCargo());
-        }
-        sb.append("</p>");
-        sb.append("<p style='color:#888'>Correo generado automáticamente por task-reportes-back.</p>");
+        sb.append(firma.html());
+        sb.append("<p style='color:#888;font-size:11px'>Correo generado automáticamente por task-reportes-back.</p>");
         return sb.toString();
     }
 }

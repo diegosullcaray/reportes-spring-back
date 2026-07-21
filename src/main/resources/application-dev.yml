@@ -1,4 +1,7 @@
 spring:
+  output:
+    ansi:
+      enabled: ALWAYS   # fuerza colores en la consola (§4.1 doc 06); en prod se deja en DETECT
   mail:
     host: localhost
     port: 1025          # SMTP local de pruebas

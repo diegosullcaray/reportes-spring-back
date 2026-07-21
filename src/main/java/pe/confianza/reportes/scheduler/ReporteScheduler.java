@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import pe.confianza.reportes.config.properties.ReportesProperties;
 import pe.confianza.reportes.mail.EmailService;
+import pe.confianza.reportes.mail.FirmaHtmlBuilder;
 import pe.confianza.reportes.service.ReporteService;
 import pe.confianza.reportes.shared.CorrelacionUtils;
 
@@ -22,10 +23,12 @@ public class ReporteScheduler {
 
     private final ReportesProperties properties;
     private final EmailService emailService;
+    private final FirmaHtmlBuilder firma;
 
-    public ReporteScheduler(ReportesProperties properties, EmailService emailService) {
+    public ReporteScheduler(ReportesProperties properties, EmailService emailService, FirmaHtmlBuilder firma) {
         this.properties = properties;
         this.emailService = emailService;
+        this.firma = firma;
     }
 
     public void ejecutarProgramado(ReporteService reporte) {
@@ -55,7 +58,8 @@ public class ReporteScheduler {
                     "[FALLO] Reporte " + codigo + " - " + corte,
                     "<p>El reporte <b>" + codigo + "</b> con corte <b>" + corte + "</b> falló.</p>"
                             + "<p>Id de ejecución: <code>" + ejecucionId + "</code></p>"
-                            + "<p>Error: " + e.getMessage() + "</p>");
+                            + "<p>Error: " + e.getMessage() + "</p>"
+                            + firma.html());
         } catch (Exception mailEx) {
             log.error("Tampoco se pudo notificar el fallo del reporte {} a soporte", codigo, mailEx);
         }

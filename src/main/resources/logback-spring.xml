@@ -1,13 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <!-- Trae los conversionRule %clr/%wEx y las propiedades de color que ya usa
+         Spring Boot en su logging por defecto (spring-boot-*.jar), para no
+         reinventar el coloreado. -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!--
+        Columnas del log, de izquierda a derecha:
+          hora            (tenue)
+          nivel           (coloreado por severidad: ERROR rojo, WARN amarillo, INFO verde)
+          [hilo]          (tenue) — verifica el paralelismo real (CA-02: report-exec-1..N concurrentes)
+          [ejecucionId]   (cian) — correlaciona todos los logs de una misma corrida (RN-07)
+          logger          (cian, acortado a 32 caracteres)
+          mensaje
+        %wEx: stack trace con sangría legible en vez del volcado plano por defecto.
+    -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%-15.15thread]){faint} %clr([%X{ejecucionId:-sin-ejecucion}]){cyan} %clr(%-32.32logger{32}){cyan} %clr(:){faint} %msg%n%wEx"/>
+
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <!-- %X{ejecucionId}: id de correlación por corrida de reporte (RN-07) -->
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] [%X{ejecucionId:-}] %logger{36} - %msg%n</pattern>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <!-- Fuerza UTF-8 en la salida (evita mojibake tipo "FALL├ô" en vez de
+                 "FALLÓ"); en Windows cmd.exe además hace falta `chcp 65001` antes
+                 de arrancar el jar — ver .docs/06_DESPLIEGUE_LOCAL.md. -->
+            <charset>UTF-8</charset>
         </encoder>
     </appender>
 
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
     </root>
+
+    <!-- Baja el ruido de arranque de los frameworks que no aportan a diagnosticar
+         un reporte, sin ocultar advertencias/errores reales de esas capas. -->
+    <logger name="org.apache.catalina" level="WARN"/>
+    <logger name="org.apache.coyote" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="org.springdoc" level="WARN"/>
 </configuration>

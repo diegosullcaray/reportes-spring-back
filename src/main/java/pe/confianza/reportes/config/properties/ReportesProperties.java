@@ -17,9 +17,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Configuración raíz {@code reportes.*}: zona horaria, directorio temporal,
- * remitente/soporte de correo y la definición (cron, asunto, destinatarios,
- * estrategia de corte) de cada reporte (RN-05: nada hardcodeado en código).
+ * Configuración raíz {@code reportes.*}: zona horaria, directorio de salida,
+ * remitente/soporte/firma de correo, webhook de Google Chat y la definición
+ * (cron, asunto, PARA/CC, estrategia de corte) de cada reporte
+ * (RN-05: nada hardcodeado en código).
  */
 @Validated
 @ConfigurationProperties(prefix = "reportes")
@@ -28,6 +29,9 @@ public record ReportesProperties(
         @NotNull Path directorioTemporal,
         @NotBlank String correoRemitente,
         @NotEmpty List<String> correoSoporte,
+        @DefaultValue("Equipo de Reportes") String firmaNombre,
+        @DefaultValue("") String firmaCargo,
+        @DefaultValue("") String googleChatWebhookUrl,
         @Min(1) @DefaultValue("20") int adjuntoMaxMb,
         @NotNull @Valid Map<String, Definicion> definiciones
 ) {
@@ -41,8 +45,12 @@ public record ReportesProperties(
             @NotBlank String cron,
             @NotBlank String asunto,
             @NotEmpty List<String> destinatarios,
+            List<String> cc,
             @DefaultValue("DIA_ANTERIOR") EstrategiaCorte corte
     ) {
+        public Definicion {
+            cc = cc == null ? List.of() : List.copyOf(cc);
+        }
     }
 
     /** Cómo se resuelve la fecha de corte al momento de disparar el cron. */

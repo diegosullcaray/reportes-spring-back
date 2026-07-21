@@ -39,7 +39,8 @@ public class ReporteSupport {
 
         var def = properties.definicion(codigo);
         String asunto = def.asunto().formatted(corte);
-        emailService.enviarConAdjunto(def.destinatarios(), asunto, cuerpoHtml(asunto, corte, hojas), archivo);
+        emailService.enviarConAdjunto(def.destinatarios(), def.cc(), asunto,
+                cuerpoHtml(asunto, corte, hojas), archivo);
 
         long filasTotales = hojas.stream().mapToLong(h -> h.filas().size()).sum();
         long duracion = System.currentTimeMillis() - inicioMs;
@@ -66,6 +67,11 @@ public class ReporteSupport {
             sb.append("<p><b>Advertencia:</b> las siguientes hojas no tienen registros para el período: ")
               .append(String.join(", ", vacias)).append("</p>");
         }
+        sb.append("<p>Saludos,<br><b>").append(properties.firmaNombre()).append("</b>");
+        if (!properties.firmaCargo().isBlank()) {
+            sb.append("<br>").append(properties.firmaCargo());
+        }
+        sb.append("</p>");
         sb.append("<p style='color:#888'>Correo generado automáticamente por task-reportes-back.</p>");
         return sb.toString();
     }

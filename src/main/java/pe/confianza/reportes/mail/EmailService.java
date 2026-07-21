@@ -38,13 +38,17 @@ public class EmailService {
         this.properties = properties;
     }
 
-    public void enviarConAdjunto(List<String> destinatarios, String asunto, String cuerpoHtml, Path adjunto) {
+    public void enviarConAdjunto(List<String> destinatarios, List<String> conCopia,
+                                 String asunto, String cuerpoHtml, Path adjunto) {
         Path aEnviar = comprimirSiExcedeLimite(adjunto);
         enviarConReintentos(() -> {
             var mensaje = mailSender.createMimeMessage();
             var helper = new MimeMessageHelper(mensaje, true, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.correoRemitente());
             helper.setTo(destinatarios.toArray(String[]::new));
+            if (conCopia != null && !conCopia.isEmpty()) {
+                helper.setCc(conCopia.toArray(String[]::new));
+            }
             helper.setSubject(asunto);
             helper.setText(cuerpoHtml, true);
             helper.addAttachment(aEnviar.getFileName().toString(), new FileSystemResource(aEnviar));
@@ -54,7 +58,8 @@ public class EmailService {
         if (!aEnviar.equals(adjunto)) {
             eliminar(aEnviar);
         }
-        log.info("Correo '{}' enviado a {} destinatario(s)", asunto, destinatarios.size());
+        log.info("Correo '{}' enviado a {} destinatario(s), {} en copia", asunto,
+                destinatarios.size(), conCopia == null ? 0 : conCopia.size());
     }
 
     /** Notificación simple sin adjunto (fallos de reporte a soporte, RN-03). */

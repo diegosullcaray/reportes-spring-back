@@ -8,8 +8,8 @@ spring:
     # EMAIL_PORT=587 con EMAIL_SSL=false y EMAIL_STARTTLS=true.
     host: ${EMAIL_HOST:smtp.gmail.com}
     port: ${EMAIL_PORT:465}
-    username: ${EMAIL_USER:diego.sullcaray@confianza.pe}
-    password: ${EMAIL_PASSWORD:***REMOVED-GMAIL-APP-PASSWORD***}
+    username: ${EMAIL_USER:usuario@confianza.pe}
+    password: ${EMAIL_PASSWORD:}
     properties:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: ${EMAIL_SSL:true}
@@ -22,11 +22,11 @@ spring:
 # Authentication (NTLM, DOMINIO\usuario); vacío → SQL Server Authentication.
 # DB_INSTANCE definido (ej. SQLEXPRESS) → instancia nombrada; vacío → puerto DB_PORT.
 db:
-  server: ${DB_SERVER:***REMOVED-DB-SERVER***}
+  server: ${DB_SERVER:localhost}
   database: ${DB_DATABASE:storage}
-  domain: ${DB_DOMAIN:BCF}
-  username: ${DB_USERNAME:***REMOVED-DB-USER***}
-  password: ${DB_PASSWORD:***REMOVED-DB-PASSWORD***}
+  domain: ${DB_DOMAIN:}
+  username: ${DB_USERNAME:sa}
+  password: ${DB_PASSWORD:}
   instance: ${DB_INSTANCE:}
   port: ${DB_PORT:1433}
   encryption: ${DB_ENCRYPTION:false}
@@ -36,13 +36,13 @@ db:
 reportes:
   zona-horaria: ${TZ_SCHEDULES:America/Lima}
   directorio-temporal: ${EXCEL_OUTPUT_PATH:./xlsx_output}
-  correo-remitente: ${EMAIL_USER:diego.sullcaray@confianza.pe}
-  correo-soporte: ${MAIL_SOPORTE:diego.sullcaray@confianza.pe}
-  firma-nombre: ${EMAIL_FIRMA_NOMBRE:Diego Denilson Sullcaray Ramos}
-  firma-cargo: ${EMAIL_FIRMA_CARGO:Analista de Sistema de la Información}
+  correo-remitente: ${EMAIL_USER:usuario@confianza.pe}
+  correo-soporte: ${MAIL_SOPORTE:michael.palacios@confianza.pe}
+  firma-nombre: ${EMAIL_FIRMA_NOMBRE:Equipo de Reportes}
+  firma-cargo: ${EMAIL_FIRMA_CARGO:}
   # Webhook entrante de un espacio de Google Chat (opcional): notifica el
   # resultado de la validación diaria del cubo. Si se omite, solo se loguea.
-  google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:https://chat.googleapis.com/v1/spaces/AAQAmeym9-k/messages?key=***REMOVED-CHAT-WEBHOOK-KEY***&token=***REMOVED-CHAT-WEBHOOK-TOKEN***}
+  google-chat-webhook-url: ${GOOGLE_CHAT_WEBHOOK_URL:}
   adjunto-max-mb: 20
   executor:
     core-size: 8
@@ -58,61 +58,61 @@ reportes:
     validacion-cubo:                       # VALIDACIÓN DIARIA del cubo comercial
       cron: "0 0 7 * * *"
       asunto: "Validación Cubo Diaria - %s"
-      destinatarios: ${VALIDACION_CUBO_PARA:diego.sullcaray@confianza.pe}
-      cc: ${VALIDACION_CUBO_CC:diego.sullcaray@confianza.pe}
+      destinatarios: ${VALIDACION_CUBO_PARA:michael.palacios@confianza.pe}
+      cc: ${VALIDACION_CUBO_CC:}
       corte: DIA_ANTERIOR
     cartera-heredada:                      # MENSUAL — Cartera Heredada PDM
       cron: "0 30 6 1 * *"
       asunto: "Cartera Heredada PDM - Stock %s"
-      destinatarios: ${CARTERA_HEREDADA_PARA:diego.sullcaray@confianza.pe}
-      cc: ${CARTERA_HEREDADA_CC:diego.sullcaray@confianza.pe}
+      destinatarios: ${CARTERA_HEREDADA_PARA:abigail.jaimes@confianza.pe,karla.campos@confianza.pe,ricardo.lazo@confianza.pe,alvaro.calderon@confianza.pe}
+      cc: ${CARTERA_HEREDADA_CC:michael.palacios@confianza.pe}
       corte: FIN_MES_ANTERIOR
     desembolso-canal:                      # MENSUAL — Desembolso Canal
       cron: "0 40 6 1 * *"
       asunto: "Desembolso Canal - %s"
-      destinatarios: ${DESEMBOLSO_CANAL_PARA:diego.sullcaray@confianza.pe}
-      cc: ${DESEMBOLSO_CANAL_CC:,diego.sullcaray@confianza.pe}
+      destinatarios: ${DESEMBOLSO_CANAL_PARA:sergio.sandoval@confianza.pe,sebastien.puertas@confianza.pe}
+      cc: ${DESEMBOLSO_CANAL_CC:abigail.jaimes@confianza.pe,michael.palacios@confianza.pe}
       corte: FIN_MES_ANTERIOR
     fondeo-estable:                        # MENSUAL — Fondeo Estable
       cron: "0 50 6 1 * *"
       asunto: "Fondeo Estable - %s"
-      destinatarios: ${FONDEO_ESTABLE_PARA:diego.sullcaray@confianza.pe}
-      cc: ${FONDEO_ESTABLE_CC:diego.sullcaray@confianza.pe}
+      destinatarios: ${FONDEO_ESTABLE_PARA:eddy.martinez@confianza.pe}
+      cc: ${FONDEO_ESTABLE_CC:michael.palacios@confianza.pe,abigail.jaimes@confianza.pe}
       corte: FIN_MES_ANTERIOR
     saldo-medio-vigente:                   # MENSUAL — Saldo Medio Vigente (Diana)
       cron: "0 0 7 1 * *"
       asunto: "Saldo Medio Vigente - %s"
-      destinatarios: ${SALDO_MEDIO_VIGENTE_PARA:diego.sullcaray@confianza.pe}
-      cc: ${SALDO_MEDIO_VIGENTE_CC:diego.sullcaray@confianza.pe}
+      destinatarios: ${SALDO_MEDIO_VIGENTE_PARA:diana.garcia@confianza.pe}
+      cc: ${SALDO_MEDIO_VIGENTE_CC:michael.palacios@confianza.pe,jorge.mercedes@confianza.pe}
       corte: FIN_MES_ANTERIOR
     saca-tu-garra:                         # MENSUAL — Base Saca tu Garra (Giancarlo)
       cron: "0 10 7 1 * *"
       asunto: "Saca tu Garra - %s"
-      destinatarios: ${REPORTE_GIANCARLO_PARA:diego.sullcaray@confianza.pe}
-      cc: ${REPORTE_GIANCARLO_CC:diego.sullcaray@confianza.pe}
+      destinatarios: ${REPORTE_GIANCARLO_PARA:giancarlo.hijar@confianza.pe}
+      cc: ${REPORTE_GIANCARLO_CC:michael.palacios@confianza.pe,abigail.jaimes@confianza.pe}
       corte: FIN_MES_ANTERIOR
     datos-cierre:                          # MENSUAL — Ratio CE, clientes nuevos y migrantes
       cron: "0 20 7 1 * *"
       asunto: "Datos Cierre - %s"
-      destinatarios: ${RATIO_CE_PARA:diego.sullcaray@confianza.pe}
+      destinatarios: ${RATIO_CE_PARA:michael.palacios@confianza.pe}
       cc: ${RATIO_CE_CC:}
       corte: FIN_MES_ANTERIOR
     reporte-seguros:                       # MENSUAL — Penetración de seguros (Giovani)
       cron: "0 30 7 1 * *"
       asunto: "Reporte Seguros - %s"
-      destinatarios: ${REPORTE_SEGUROS_PARA:diego.sullcaray@confianza.pe}
+      destinatarios: ${REPORTE_SEGUROS_PARA:michael.palacios@confianza.pe}
       cc: ${REPORTE_SEGUROS_CC:}
       corte: FIN_MES_ANTERIOR
     saldo-puntual-medio:                   # MENSUAL — Saldo puntual / saldo medio (Giovani)
       cron: "0 40 7 1 * *"
       asunto: "Saldo Puntual - Saldo Medio - %s"
-      destinatarios: ${SALDO_PUNTUAL_MEDIO_PARA:diego.sullcaray@confianza.pe}
+      destinatarios: ${SALDO_PUNTUAL_MEDIO_PARA:michael.palacios@confianza.pe}
       cc: ${SALDO_PUNTUAL_MEDIO_CC:}
       corte: FIN_MES_ANTERIOR
     cartera-vigente-agro:                  # MENSUAL — Cartera vigente producto agro (Giovani)
       cron: "0 50 7 1 * *"
       asunto: "Cartera Vigente Agro - %s"
-      destinatarios: ${SALDO_VIGENTE_AGRO_PARA:diego.sullcaray@confianza.pe}
+      destinatarios: ${SALDO_VIGENTE_AGRO_PARA:michael.palacios@confianza.pe}
       cc: ${SALDO_VIGENTE_AGRO_CC:}
       corte: FIN_MES_ANTERIOR
 
